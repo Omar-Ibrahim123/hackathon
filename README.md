@@ -14,6 +14,18 @@ Receipt photos are turned into structured line items by `ocr.py`, which uses Cla
 
 `main.py` exposes this as a REST API (FastAPI). `app.py` is a Streamlit demo UI for local testing.
 
+## Tech Stack
+
+- **Backend:** Python, FastAPI, Streamlit, SQLite, pandas
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, React Router
+- **External APIs:** Anthropic Claude (receipt OCR + fallback estimates), Climatiq (emission factors)
+- **Testing:** pytest (backend), Vitest + Testing Library (frontend)
+
+## Prerequisites
+
+- Python 3.12+
+- Node.js 22.x and npm (see `.tool-versions`)
+
 ## Implemented Features
 
 - Claude-vision OCR that turns a receipt photo directly into structured line items.
@@ -34,12 +46,19 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Environment variables (both optional — the pipeline degrades gracefully without them):
+Copy `.env.example` to `.env` and fill in whichever keys you have:
 
 ```bash
-export CLIMATIQ_API_KEY="your_climatiq_key"     # second-tier item matching
-export ANTHROPIC_API_KEY="your_anthropic_key"   # receipt OCR + last-resort estimation
+cp .env.example .env
 ```
+
+```bash
+# .env
+ANTHROPIC_API_KEY=your_anthropic_key   # receipt OCR + last-resort estimation
+CLIMATIQ_API_KEY=your_climatiq_key     # second-tier item matching
+```
+
+Both keys are optional — the pipeline degrades gracefully without them (see `.env.example` for the full list of variables, including frontend-only ones).
 
 ## Run the Backend API
 
@@ -127,3 +146,7 @@ Run backend tests, frontend tests, and the production build:
 npm test
 npm run build
 ```
+
+## Deployment
+
+`render.yaml` defines a two-service deploy to [Render](https://render.com): a FastAPI backend (`ecoreceipt-api`) and a static React frontend (`ecoreceipt`) built from the same repo. Push to a connected Render Blueprint to deploy both; set `ANTHROPIC_API_KEY` and `CLIMATIQ_API_KEY` as secrets on the backend service in the Render dashboard (they're intentionally left out of `render.yaml`).
