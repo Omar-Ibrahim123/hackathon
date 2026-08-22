@@ -59,7 +59,7 @@ if uploaded_file is not None:
             [
                 {
                     key: item.get(key)
-                    for key in ("raw_item", "matched_item", "category", "item_co2e_kg", "source")
+                    for key in ("raw_item", "matched_item", "category", "item_co2e_kg", "source", "status", "error")
                 }
                 for item in line_items
             ],

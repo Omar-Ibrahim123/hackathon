@@ -6,7 +6,7 @@ from typing import Any
 # separately installed package.
 ReceiptMatcher: Any = import_module("matcher").ReceiptMatcher
 
-def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher: ReceiptMatcher) -> dict:
+def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher: Any) -> dict:
     """
     Calculates total footprint and generates eco-swap recommendations.
     
