@@ -18,6 +18,17 @@ function comparisonText(change: number | null): string {
   return "No change from previous upload";
 }
 
+function deltaDirection(change: number | null): "good" | "bad" | "flat" {
+  if (change === null || change === 0) return "flat";
+  return change > 0 ? "bad" : "good";
+}
+
+const DELTA_PATHS: Record<"good" | "bad" | "flat", string> = {
+  good: "M4.5 4.5 L11.5 11.5 M11.5 6.5 V11.5 H6.5",
+  bad: "M4.5 11.5 L11.5 4.5 M6.5 4.5 H11.5 V9.5",
+  flat: "M4.5 8 H11.5",
+};
+
 export default function ProgressPage() {
   const repository = useTripRepository();
   const [trips, setTrips] = useState<SavedTrip[] | null>(null);
@@ -44,9 +55,10 @@ export default function ProgressPage() {
   }, [repository]);
 
   const summary = trips ? buildProgressSummary(trips) : null;
+  const direction = deltaDirection(summary?.latestUploadChangePercent ?? null);
 
   return (
-    <main className="app-main">
+    <main className="app-main progress-page">
       <p className="eyebrow">Latest six uploads</p>
       <h1 data-route-heading tabIndex={-1}>Progress &amp; Insights</h1>
 
@@ -55,7 +67,22 @@ export default function ProgressPage() {
       )}
       {error && <p className="error-card" role="alert">{error}</p>}
       {summary?.tripCount === 0 && (
-        <section className="empty-state">
+        <section className="empty-state empty-editorial">
+          <svg
+            className="empty-glyph"
+            viewBox="0 0 20 20"
+            width="44"
+            height="44"
+            aria-hidden="true"
+          >
+            <path
+              d="M4 16v-4 M10 16V8 M16 16V4"
+              fill="none"
+              stroke="var(--green)"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </svg>
           <h2>See how your footprint changes</h2>
           <p>Save your first trip to see progress over time.</p>
           <Link className="text-link" to="/">Calculate a trip</Link>
@@ -64,19 +91,49 @@ export default function ProgressPage() {
       {summary && summary.tripCount > 0 && (
         <>
           <section className="progress-panel" aria-labelledby="uploads-heading">
-            <h2 id="uploads-heading">Recent uploads</h2>
+            <div className="panel-head">
+              <h2 id="uploads-heading">Recent uploads</h2>
+              <p className="chart-caption">Kilograms of CO₂e per shopping trip</p>
+            </div>
             <ProgressChart uploads={summary.uploads} />
           </section>
           <section className="insights-grid" aria-label="Carbon insights">
             <article className="insight-card">
               <span>Latest upload change</span>
-              <strong>{comparisonText(summary.latestUploadChangePercent)}</strong>
+              <span className="delta-row">
+                <span className={`delta-icon delta-${direction}`} aria-hidden="true">
+                  <svg viewBox="0 0 16 16" width="14" height="14">
+                    <path
+                      d={DELTA_PATHS[direction]}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <strong className={`delta-text delta-text-${direction}`}>
+                  {comparisonText(summary.latestUploadChangePercent)}
+                </strong>
+              </span>
             </article>
             <article className="insight-card">
               <span>Average upload</span>
               <strong>{formatEmissions(summary.averageTripCo2eKg ?? 0)} per upload</strong>
             </article>
-            <article className="insight-card">
+            <article className="insight-card insight-dark">
+              <svg
+                className="dark-rings"
+                viewBox="0 0 260 260"
+                width="260"
+                height="260"
+                aria-hidden="true"
+              >
+                <circle cx="130" cy="130" r="60" fill="none" stroke="rgba(255,255,255,.10)" strokeWidth="1.25" />
+                <circle cx="130" cy="130" r="90" fill="none" stroke="rgba(255,255,255,.10)" strokeWidth="1.25" />
+                <circle cx="130" cy="130" r="120" fill="none" stroke="rgba(255,255,255,.10)" strokeWidth="1.25" />
+              </svg>
               <span>Total footprint (last {summary.tripCount} uploads)</span>
               <strong>{formatEmissions(summary.totalTripCo2eKg)}</strong>
               <small>{`That's like ${formatCarMiles(summary.totalTripCo2eKg)} in an average car`}</small>
