@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { validateReceiptFile } from "../validation";
+import CameraCapture from "./CameraCapture";
 
 interface ReceiptInputProps {
   disabled: boolean;
@@ -13,9 +14,9 @@ export default function ReceiptInput({
 }: ReceiptInputProps) {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const nextFile = event.target.files?.[0] ?? null;
+  function applyFile(nextFile: File | null) {
     setFile(nextFile);
     setError(null);
 
@@ -23,6 +24,15 @@ export default function ReceiptInput({
       const result = validateReceiptFile(nextFile);
       if (!result.ok) setError(result.message);
     }
+  }
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    applyFile(event.target.files?.[0] ?? null);
+  }
+
+  function handleCameraCapture(capturedFile: File) {
+    applyFile(capturedFile);
+    setCameraOpen(false);
   }
 
   function handleSubmit(event: React.FormEvent) {
@@ -49,10 +59,28 @@ export default function ReceiptInput({
         </div>
       </div>
 
+      <button
+        type="button"
+        className="camera-button"
+        disabled={disabled}
+        onClick={() => setCameraOpen(true)}
+      >
+        <span className="camera-icon" aria-hidden="true">📷</span>
+        Take a photo of your receipt
+      </button>
+
+      <CameraCapture
+        open={cameraOpen}
+        onCapture={handleCameraCapture}
+        onClose={() => setCameraOpen(false)}
+      />
+
+      <div className="upload-divider">or</div>
+
       <label className="upload-zone">
         <span className="upload-icon" aria-hidden="true">↥</span>
         <span className="upload-title">
-          {file ? file.name : "Take a photo or choose an image"}
+          {file ? file.name : "Choose an image from your device"}
         </span>
         <span className="upload-hint">
           Keep the full receipt visible · JPG, PNG or WebP · 10 MB max
@@ -61,7 +89,6 @@ export default function ReceiptInput({
           aria-label="Receipt image"
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          capture="environment"
           disabled={disabled}
           onChange={handleFileChange}
         />
