@@ -25,10 +25,13 @@ def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher:
     for item in parsed_items:
         raw_title = item.get("raw_item", "")
         qty = float(item.get("qty", 1.0))
-        
+        weight = item.get("weight")
+        weight_unit = item.get("weight_unit")
+        price = item.get("price")
+
         # 1. Match the item using the fuzzy engine
         match_res = matcher.match_item(raw_title)
-        
+
         # 2. Handle unmatched items
         if match_res["status"] == "UNMATCHED":
             line_items.append({
@@ -36,6 +39,9 @@ def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher:
                 "matched_item": "Unknown Item",
                 "category": "Uncategorized",
                 "qty": qty,
+                "weight": weight,
+                "weight_unit": weight_unit,
+                "price": price,
                 "item_co2e_kg": 0.0,
                 "confidence_score": 0.0,
                 "status": "UNMATCHED"
@@ -53,6 +59,9 @@ def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher:
             "matched_item": match_res["matched_item"],
             "category": match_res["category"],
             "qty": qty,
+            "weight": weight,
+            "weight_unit": weight_unit,
+            "price": price,
             "unit_weight_kg": unit_weight,
             "item_co2e_kg": item_co2e,
             "confidence_score": match_res["confidence_score"],
