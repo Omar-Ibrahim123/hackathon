@@ -50,9 +50,6 @@ export GEMINI_API_KEY="your_gemini_key"
 uvicorn main:app --reload
 ```
 
-- `GET /health` - liveness check.
-- `POST /api/receipts/scan` - multipart image upload (`file`).
-- `POST /api/receipts/analyze` - JSON body `{"items": [{"raw_item": "...", "qty": 1}]}`.
 
 ## Run the Streamlit Demo
 
