@@ -20,7 +20,7 @@ function resolveMode(value: string | undefined): ApiMode {
 }
 
 const mode = resolveMode(import.meta.env.VITE_API_MODE);
-const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000")
+const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "")
   .replace(/\/$/, "");
 
 function isNonEmptyString(value: unknown): value is string {

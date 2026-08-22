@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from engine import CarbonEngine, OcrFailedError, OcrUnavailableError
+from history import HistoryStore
 
 app = FastAPI(
     title="EcoReceipt API",
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 engine = CarbonEngine()
+history = HistoryStore()
 
 _ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 _MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -46,6 +48,16 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/")
+def root() -> dict:
+    return {
+        "name": "EcoReceipt API",
+        "docs": "/docs",
+        "history": "/api/history",
+        "stats": "/api/history/stats",
+    }
+
+
 @app.post("/api/receipts/analyze")
 def analyze_receipt(request: AnalyzeRequest) -> dict:
     """Calculates carbon footprint for already-parsed receipt line items.
@@ -56,7 +68,9 @@ def analyze_receipt(request: AnalyzeRequest) -> dict:
         raise HTTPException(status_code=400, detail="No items provided.")
 
     parsed_items = [item.model_dump() for item in request.items]
-    return engine.analyze_receipt(parsed_items)
+    result = engine.analyze_receipt(parsed_items)
+    history.save_receipt(result)
+    return result
 
 
 @app.post("/api/receipts/scan")
@@ -76,11 +90,27 @@ async def scan_receipt(file: UploadFile = File(...)) -> dict:
         raise HTTPException(status_code=400, detail="Image exceeds 10 MB limit.")
 
     try:
-        return engine.analyze_receipt_image(image_bytes, content_type=file.content_type)
+        result = engine.analyze_receipt_image(image_bytes, content_type=file.content_type)
+        history.save_receipt(result)
+        return result
     except OcrUnavailableError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
     except OcrFailedError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@app.get("/api/history")
+def get_history(limit: int = 50) -> dict:
+    """Returns completed uploaded receipts and their saved line items."""
+    if not 1 <= limit <= 100:
+        raise HTTPException(status_code=400, detail="Limit must be between 1 and 100.")
+    return {"receipts": history.list_receipts(limit)}
+
+
+@app.get("/api/history/stats")
+def get_history_stats() -> dict:
+    """Returns aggregate carbon statistics across all uploaded receipts."""
+    return history.stats()
 
 
 if __name__ == "__main__":
