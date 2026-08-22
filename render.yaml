@@ -1,7 +1,7 @@
 services:
   # FastAPI backend (history database, receipt analysis)
   - type: web
-    name: greenercart-api
+    name: ecoreceipt-api
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
@@ -19,7 +19,7 @@ services:
 
   # React frontend (the site you open in the browser)
   - type: web
-    name: greenercart
+    name: ecoreceipt
     runtime: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
@@ -28,10 +28,10 @@ services:
         value: "false"
       - key: VITE_API_MODE
         value: live
-      # Must match the greenercart-api service URL. If Render gives the API
+      # Must match the ecoreceipt-api service URL. If Render gives the API
       # a different URL (name already taken), update this and redeploy.
       - key: VITE_API_BASE_URL
-        value: https://greenercart-api.onrender.com
+        value: https://ecoreceipt-api.onrender.com
     routes:
       - type: rewrite
         source: /*
