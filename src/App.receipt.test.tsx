@@ -31,5 +31,9 @@ describe("receipt calculation", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Ground beef")).toBeInTheDocument();
     expect(screen.getByText("3.1 kg CO₂e")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Swap recommendations" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Ground beef → Lentils")).toBeInTheDocument();
   });
 });

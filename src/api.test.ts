@@ -28,6 +28,16 @@ describe("frontend carbon API", () => {
     await vi.advanceTimersByTimeAsync(1);
     await expect(resultPromise).resolves.toEqual({
       totalCo2eKg: 6.4,
+      potentialTotalSavingsKg: 2.69,
+      ecoSwapRecommendations: [
+        {
+          originalItem: "Ground beef",
+          originalCo2eKg: 3.1,
+          recommendedSwap: "Lentils",
+          swapCo2eKg: 0.41,
+          potentialSavingsKg: 2.69,
+        },
+      ],
       items: [
         { id: "beef", name: "Ground beef", co2eKg: 3.1 },
         { id: "cheese", name: "Cheddar cheese", co2eKg: 1.2 },
@@ -47,7 +57,7 @@ describe("frontend carbon API", () => {
           summary: {
             total_co2e_kg: 2.4,
             total_items_processed: 1,
-            potential_total_savings_kg: 0,
+            potential_total_savings_kg: 9.59,
           },
           line_items: [
             {
@@ -56,7 +66,15 @@ describe("frontend carbon API", () => {
               item_co2e_kg: 2.4,
             },
           ],
-          eco_swap_recommendations: [],
+          eco_swap_recommendations: [
+            {
+              original_item: "Ground beef",
+              original_co2e_kg: 10,
+              recommended_swap: "Lentils",
+              swap_co2e_kg: 0.41,
+              potential_savings_kg: 9.59,
+            },
+          ],
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
@@ -69,6 +87,16 @@ describe("frontend carbon API", () => {
 
     await expect(analyzeReceipt(file)).resolves.toEqual({
       totalCo2eKg: 2.4,
+      potentialTotalSavingsKg: 9.59,
+      ecoSwapRecommendations: [
+        {
+          originalItem: "Ground beef",
+          originalCo2eKg: 10,
+          recommendedSwap: "Lentils",
+          swapCo2eKg: 0.41,
+          potentialSavingsKg: 9.59,
+        },
+      ],
       items: [{ id: "item-0", name: "Oat milk", co2eKg: 2.4 }],
     });
 
@@ -145,6 +173,8 @@ describe("frontend carbon API", () => {
       ]),
     ).resolves.toEqual({
       totalCo2eKg: 0.9,
+      potentialTotalSavingsKg: 0,
+      ecoSwapRecommendations: [],
       items: [{ id: "item-0", name: "Apple", co2eKg: 0.9 }],
     });
 
@@ -164,6 +194,22 @@ describe("frontend carbon API", () => {
     {
       summary: { total_co2e_kg: 1 },
       line_items: [{ raw_item: "Apples", item_co2e_kg: Number.NaN }],
+    },
+    {
+      summary: {
+        total_co2e_kg: 1,
+        potential_total_savings_kg: 1,
+      },
+      line_items: [{ raw_item: "Apples", item_co2e_kg: 1 }],
+      eco_swap_recommendations: [
+        {
+          original_item: "Apples",
+          original_co2e_kg: 1,
+          recommended_swap: "Pears",
+          swap_co2e_kg: 0.5,
+          potential_savings_kg: -1,
+        },
+      ],
     },
   ])("rejects malformed backend results", async (payload) => {
     vi.stubEnv("VITE_API_MODE", "live");

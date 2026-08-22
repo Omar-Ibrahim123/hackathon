@@ -11,6 +11,7 @@ const savedTrip: SavedTrip = {
   source: "receipt",
   savedAt: "2026-08-20T12:00:00.000Z",
   totalCo2eKg: 6.4,
+  ecoSwapRecommendations: [],
   items: [{ id: "beef", name: "Ground beef", co2eKg: 3.1 }],
 };
 

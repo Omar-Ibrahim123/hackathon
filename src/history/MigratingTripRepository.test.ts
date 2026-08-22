@@ -10,6 +10,7 @@ const newTrip: NewTrip = {
   source: "receipt",
   totalCo2eKg: 6.4,
   items: [{ id: "item-0", name: "Milk", co2eKg: 1.2 }],
+  ecoSwapRecommendations: [],
 };
 const oldDate = new Date("2026-07-05T16:00:00.000Z");
 

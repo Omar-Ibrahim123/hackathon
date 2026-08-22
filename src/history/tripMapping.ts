@@ -9,5 +9,8 @@ export function toNewTrip(
     source,
     totalCo2eKg: result.totalCo2eKg,
     items: result.items.map((item) => ({ ...item })),
+    ecoSwapRecommendations: result.ecoSwapRecommendations.map(
+      (recommendation) => ({ ...recommendation }),
+    ),
   };
 }

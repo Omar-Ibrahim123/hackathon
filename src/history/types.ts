@@ -1,3 +1,5 @@
+import type { EcoSwapRecommendation } from "../types";
+
 export type TripSource = "receipt" | "manual";
 
 export interface SavedTripItem {
@@ -10,6 +12,7 @@ export interface NewTrip {
   source: TripSource;
   totalCo2eKg: number;
   items: SavedTripItem[];
+  ecoSwapRecommendations: EcoSwapRecommendation[];
 }
 
 export interface SavedTrip extends NewTrip {

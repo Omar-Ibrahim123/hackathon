@@ -11,6 +11,8 @@ describe("ResultPanel", () => {
       <ResultPanel
         result={{
           totalCo2eKg: 2.7,
+          potentialTotalSavingsKg: 0,
+          ecoSwapRecommendations: [],
           items: [
             { id: "granola", name: "Granola bars", co2eKg: 1.8 },
             { id: "apples", name: "Apples", co2eKg: 0.9 },

@@ -3,6 +3,7 @@ import { apiBaseUrl as baseUrl, apiMode as mode } from "./apiConfig";
 import type {
   CarbonResult,
   CarbonResultItem,
+  EcoSwapRecommendation,
   ManualGroceryItem,
 } from "./types";
 
@@ -40,6 +41,29 @@ function normalizeLineItem(
   };
 }
 
+function normalizeRecommendation(value: unknown): EcoSwapRecommendation | null {
+  if (typeof value !== "object" || value === null) return null;
+  const recommendation = value as Record<string, unknown>;
+  if (
+    !isNonEmptyString(recommendation.original_item) ||
+    !isNonNegativeFiniteNumber(recommendation.original_co2e_kg) ||
+    !isNonEmptyString(recommendation.recommended_swap) ||
+    !isNonNegativeFiniteNumber(recommendation.swap_co2e_kg) ||
+    !isNonNegativeFiniteNumber(recommendation.potential_savings_kg) ||
+    recommendation.potential_savings_kg <= 0 ||
+    recommendation.swap_co2e_kg >= recommendation.original_co2e_kg
+  ) {
+    return null;
+  }
+  return {
+    originalItem: recommendation.original_item.trim(),
+    originalCo2eKg: recommendation.original_co2e_kg,
+    recommendedSwap: recommendation.recommended_swap.trim(),
+    swapCo2eKg: recommendation.swap_co2e_kg,
+    potentialSavingsKg: recommendation.potential_savings_kg,
+  };
+}
+
 export function parseCarbonResult(value: unknown): CarbonResult {
   if (typeof value !== "object" || value === null) {
     throw new Error(INVALID_RESPONSE_MESSAGE);
@@ -62,10 +86,24 @@ export function parseCarbonResult(value: unknown): CarbonResult {
   if (items.some((item) => item === null)) {
     throw new Error(INVALID_RESPONSE_MESSAGE);
   }
+  const savings = summary.potential_total_savings_kg ?? 0;
+  const rawRecommendations = response.eco_swap_recommendations ?? [];
+  if (
+    !isNonNegativeFiniteNumber(savings) ||
+    !Array.isArray(rawRecommendations)
+  ) {
+    throw new Error(INVALID_RESPONSE_MESSAGE);
+  }
+  const recommendations = rawRecommendations.map(normalizeRecommendation);
+  if (recommendations.some((recommendation) => recommendation === null)) {
+    throw new Error(INVALID_RESPONSE_MESSAGE);
+  }
 
   return {
     totalCo2eKg: summary.total_co2e_kg,
+    potentialTotalSavingsKg: savings,
     items: items as CarbonResultItem[],
+    ecoSwapRecommendations: recommendations as EcoSwapRecommendation[],
   };
 }
 

@@ -92,6 +92,26 @@ export default function ProgressPage() {
                 <small>{formatSavedAt(summary.highestImpactTrip.savedAt)}</small>
               </Link>
             )}
+            {summary.swapRecommendation && (
+              <Link
+                className="insight-card insight-link swap-recommendation-card"
+                to={`/history/${summary.swapRecommendation.tripId}`}
+                aria-label={`Swap recommendation, ${summary.swapRecommendation.recommendation.originalItem} for ${summary.swapRecommendation.recommendation.recommendedSwap}`}
+              >
+                <h2>Swap recommendation</h2>
+                <strong>
+                  {summary.swapRecommendation.recommendation.originalItem} →{" "}
+                  {summary.swapRecommendation.recommendation.recommendedSwap}
+                </strong>
+                <small>
+                  Potential saving:{" "}
+                  {formatEmissions(
+                    summary.swapRecommendation.recommendation
+                      .potentialSavingsKg,
+                  )}
+                </small>
+              </Link>
+            )}
           </section>
         </>
       )}

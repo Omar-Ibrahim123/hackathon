@@ -4,6 +4,16 @@ const MOCK_DELAY_MS = 650;
 
 const RECEIPT_RESULT: CarbonResult = {
   totalCo2eKg: 6.4,
+  potentialTotalSavingsKg: 2.69,
+  ecoSwapRecommendations: [
+    {
+      originalItem: "Ground beef",
+      originalCo2eKg: 3.1,
+      recommendedSwap: "Lentils",
+      swapCo2eKg: 0.41,
+      potentialSavingsKg: 2.69,
+    },
+  ],
   items: [
     { id: "beef", name: "Ground beef", co2eKg: 3.1 },
     { id: "cheese", name: "Cheddar cheese", co2eKg: 1.2 },
@@ -15,6 +25,8 @@ const RECEIPT_RESULT: CarbonResult = {
 
 const MANUAL_RESULT: CarbonResult = {
   totalCo2eKg: 2.7,
+  potentialTotalSavingsKg: 0,
+  ecoSwapRecommendations: [],
   items: [
     { id: "granola", name: "Granola bars", co2eKg: 1.8 },
     { id: "apples", name: "Apples", co2eKg: 0.9 },
@@ -22,7 +34,13 @@ const MANUAL_RESULT: CarbonResult = {
 };
 
 function copyResult(result: CarbonResult): CarbonResult {
-  return { ...result, items: result.items.map((item) => ({ ...item })) };
+  return {
+    ...result,
+    items: result.items.map((item) => ({ ...item })),
+    ecoSwapRecommendations: result.ecoSwapRecommendations.map(
+      (recommendation) => ({ ...recommendation }),
+    ),
+  };
 }
 
 function delay(): Promise<void> {

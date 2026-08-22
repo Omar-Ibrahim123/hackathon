@@ -1,3 +1,4 @@
+import type { EcoSwapRecommendation } from "../types";
 import type { SavedTrip, SavedTripItem, TripSource } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -28,6 +29,28 @@ function parseItem(value: unknown): SavedTripItem | null {
   return { id: value.id, name: value.name, co2eKg: value.co2eKg };
 }
 
+function parseRecommendation(value: unknown): EcoSwapRecommendation | null {
+  if (
+    !isRecord(value) ||
+    !isNonEmptyString(value.originalItem) ||
+    !isNonNegativeFiniteNumber(value.originalCo2eKg) ||
+    !isNonEmptyString(value.recommendedSwap) ||
+    !isNonNegativeFiniteNumber(value.swapCo2eKg) ||
+    !isNonNegativeFiniteNumber(value.potentialSavingsKg) ||
+    value.potentialSavingsKg <= 0 ||
+    value.swapCo2eKg >= value.originalCo2eKg
+  ) {
+    return null;
+  }
+  return {
+    originalItem: value.originalItem.trim(),
+    originalCo2eKg: value.originalCo2eKg,
+    recommendedSwap: value.recommendedSwap.trim(),
+    swapCo2eKg: value.swapCo2eKg,
+    potentialSavingsKg: value.potentialSavingsKg,
+  };
+}
+
 export function parseSavedTrip(value: unknown): SavedTrip | null {
   if (
     !isRecord(value) ||
@@ -44,12 +67,19 @@ export function parseSavedTrip(value: unknown): SavedTrip | null {
   if (items.some((item) => item === null)) return null;
   const itemIds = items.map((item) => item!.id);
   if (new Set(itemIds).size !== itemIds.length) return null;
+  const rawRecommendations = value.ecoSwapRecommendations ?? [];
+  if (!Array.isArray(rawRecommendations)) return null;
+  const recommendations = rawRecommendations.map(parseRecommendation);
+  if (recommendations.some((recommendation) => recommendation === null)) {
+    return null;
+  }
   return {
     id: value.id,
     source: value.source,
     savedAt: value.savedAt,
     totalCo2eKg: value.totalCo2eKg,
     items: items as SavedTripItem[],
+    ecoSwapRecommendations: recommendations as EcoSwapRecommendation[],
   };
 }
 

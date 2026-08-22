@@ -2,9 +2,36 @@ import { describe, expect, it } from "vitest";
 
 import { buildProgressSummary } from "./progress";
 import type { SavedTrip } from "./types";
+import type { EcoSwapRecommendation } from "../types";
 
-function trip(id: string, savedAt: string, totalCo2eKg: number): SavedTrip {
-  return { id, savedAt, totalCo2eKg, source: "receipt", items: [] };
+function recommendation(
+  originalItem: string,
+  recommendedSwap: string,
+  potentialSavingsKg: number,
+): EcoSwapRecommendation {
+  return {
+    originalItem,
+    originalCo2eKg: potentialSavingsKg + 1,
+    recommendedSwap,
+    swapCo2eKg: 1,
+    potentialSavingsKg,
+  };
+}
+
+function trip(
+  id: string,
+  savedAt: string,
+  totalCo2eKg: number,
+  ecoSwapRecommendations: EcoSwapRecommendation[] = [],
+): SavedTrip {
+  return {
+    id,
+    savedAt,
+    totalCo2eKg,
+    source: "receipt",
+    items: [],
+    ecoSwapRecommendations,
+  };
 }
 
 describe("buildProgressSummary", () => {
@@ -33,6 +60,33 @@ describe("buildProgressSummary", () => {
     expect(summary.highestImpactTrip?.id).toBe("upload-7");
   });
 
+  it("selects the greatest swap saving from the six recent uploads", () => {
+    const summary = buildProgressSummary([
+      trip(
+        "excluded",
+        "2026-08-01T12:00:00Z",
+        100,
+        [recommendation("Old beef", "Old lentils", 50)],
+      ),
+      trip("one", "2026-08-02T12:00:00Z", 2),
+      trip(
+        "best",
+        "2026-08-03T12:00:00Z",
+        3,
+        [recommendation("Ground beef", "Lentils", 8.5)],
+      ),
+      trip("three", "2026-08-04T12:00:00Z", 4),
+      trip("four", "2026-08-05T12:00:00Z", 5),
+      trip("five", "2026-08-06T12:00:00Z", 6),
+      trip("six", "2026-08-07T12:00:00Z", 7),
+    ]);
+
+    expect(summary.swapRecommendation).toEqual({
+      tripId: "best",
+      recommendation: recommendation("Ground beef", "Lentils", 8.5),
+    });
+  });
+
   it("omits percentage change when there is no comparable previous upload", () => {
     expect(
       buildProgressSummary([trip("only", "2026-08-02T12:00:00Z", 5)])
@@ -54,6 +108,7 @@ describe("buildProgressSummary", () => {
     expect(summary.averageTripCo2eKg).toBeNull();
     expect(summary.totalTripCo2eKg).toBe(0);
     expect(summary.highestImpactTrip).toBeNull();
+    expect(summary.swapRecommendation).toBeNull();
   });
 
   it("uses the newest upload when highest-impact totals tie", () => {

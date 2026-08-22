@@ -10,6 +10,7 @@ const olderTrip: SavedTrip = {
   source: "manual",
   savedAt: "2026-07-20T12:00:00.000Z",
   totalCo2eKg: 2.7,
+  ecoSwapRecommendations: [],
   items: [{ id: "apples", name: "Apples", co2eKg: 0.9 }],
 };
 const newerTrip: SavedTrip = {
@@ -17,6 +18,7 @@ const newerTrip: SavedTrip = {
   source: "receipt",
   savedAt: "2026-08-20T12:00:00.000Z",
   totalCo2eKg: 6.4,
+  ecoSwapRecommendations: [],
   items: [{ id: "beef", name: "Ground beef", co2eKg: 3.1 }],
 };
 

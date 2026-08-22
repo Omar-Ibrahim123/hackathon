@@ -1,49 +1,17 @@
 import { TripRepositoryError, type TripRepository } from "./TripRepository";
-import type { NewTrip, SavedTrip, SavedTripItem, TripSource } from "./types";
+import { parseSavedTrips } from "./tripValidation";
+import type { NewTrip, SavedTrip } from "./types";
 
 const STORAGE_KEY = "greenercart.saved-trips";
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 
 interface StoredTrips {
-  version: 1;
+  version: 2;
   trips: SavedTrip[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
-}
-
-function isNonNegativeNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0;
-}
-
-function isSource(value: unknown): value is TripSource {
-  return value === "receipt" || value === "manual";
-}
-
-function isItem(value: unknown): value is SavedTripItem {
-  return (
-    isRecord(value) &&
-    typeof value.id === "string" &&
-    value.id.length > 0 &&
-    typeof value.name === "string" &&
-    value.name.trim().length > 0 &&
-    isNonNegativeNumber(value.co2eKg)
-  );
-}
-
-function isTrip(value: unknown): value is SavedTrip {
-  return (
-    isRecord(value) &&
-    typeof value.id === "string" &&
-    value.id.length > 0 &&
-    isSource(value.source) &&
-    typeof value.savedAt === "string" &&
-    Number.isFinite(Date.parse(value.savedAt)) &&
-    isNonNegativeNumber(value.totalCo2eKg) &&
-    Array.isArray(value.items) &&
-    value.items.every(isItem)
-  );
 }
 
 export class LocalStorageTripRepository implements TripRepository {
@@ -60,13 +28,21 @@ export class LocalStorageTripRepository implements TripRepository {
       const value: unknown = JSON.parse(raw);
       if (
         !isRecord(value) ||
-        value.version !== STORAGE_VERSION ||
-        !Array.isArray(value.trips) ||
-        !value.trips.every(isTrip)
+        (value.version !== 1 && value.version !== STORAGE_VERSION) ||
+        !Array.isArray(value.trips)
       ) {
         throw new TripRepositoryError();
       }
-      return value.trips;
+      const normalized = value.version === 1
+        ? value.trips.map((trip) =>
+            isRecord(trip)
+              ? { ...trip, ecoSwapRecommendations: [] }
+              : trip,
+          )
+        : value.trips;
+      const trips = parseSavedTrips(normalized);
+      if (trips === null) throw new TripRepositoryError();
+      return trips;
     } catch (error) {
       if (error instanceof TripRepositoryError) throw error;
       throw new TripRepositoryError();

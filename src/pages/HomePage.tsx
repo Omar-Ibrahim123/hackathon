@@ -3,6 +3,7 @@ import { useState } from "react";
 import { analyzeReceipt, calculateManual } from "../api";
 import ManualEntryForm from "../components/ManualEntryForm";
 import ReceiptInput from "../components/ReceiptInput";
+import EcoSwapPanel from "../components/EcoSwapPanel";
 import ResultPanel from "../components/ResultPanel";
 import { useTripRepository } from "../history/TripRepositoryContext";
 import { toNewTrip } from "../history/tripMapping";
@@ -181,6 +182,9 @@ export default function HomePage() {
       {activeResult && !isLoading && (
         <>
           <ResultPanel result={activeResult.result} />
+          <EcoSwapPanel
+            recommendations={activeResult.result.ecoSwapRecommendations}
+          />
           <div className="save-actions" aria-live="polite">
             {activeResult.source === "receipt" && savedTrip && (
               <p className="save-success">Saved to history</p>

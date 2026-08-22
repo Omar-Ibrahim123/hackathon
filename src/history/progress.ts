@@ -1,4 +1,5 @@
 import type { SavedTrip } from "./types";
+import type { EcoSwapRecommendation } from "../types";
 
 export interface ProgressUpload {
   id: string;
@@ -13,6 +14,10 @@ export interface ProgressSummary {
   averageTripCo2eKg: number | null;
   totalTripCo2eKg: number;
   highestImpactTrip: SavedTrip | null;
+  swapRecommendation: {
+    tripId: string;
+    recommendation: EcoSwapRecommendation;
+  } | null;
 }
 
 export function buildProgressSummary(trips: SavedTrip[]): ProgressSummary {
@@ -48,6 +53,20 @@ export function buildProgressSummary(trips: SavedTrip[]): ProgressSummary {
     },
     null,
   );
+  const swapRecommendation = recentTrips.reduce<
+    ProgressSummary["swapRecommendation"]
+  >((best, trip) => {
+    for (const recommendation of trip.ecoSwapRecommendations) {
+      if (
+        best === null ||
+        recommendation.potentialSavingsKg >=
+          best.recommendation.potentialSavingsKg
+      ) {
+        best = { tripId: trip.id, recommendation };
+      }
+    }
+    return best;
+  }, null);
 
   return {
     uploads,
@@ -60,5 +79,6 @@ export function buildProgressSummary(trips: SavedTrip[]): ProgressSummary {
       recentTrips.length > 0 ? total / recentTrips.length : null,
     totalTripCo2eKg: total,
     highestImpactTrip,
+    swapRecommendation,
   };
 }
