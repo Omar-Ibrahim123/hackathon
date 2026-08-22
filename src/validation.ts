@@ -5,8 +5,6 @@ type ValidationResult = { ok: true } | { ok: false; message: string };
 const ACCEPTED_RECEIPT_TYPES = new Set([
   "image/jpeg",
   "image/png",
-  "image/heic",
-  "image/heif",
   "image/webp",
 ]);
 
@@ -16,7 +14,7 @@ export function validateReceiptFile(file: File): ValidationResult {
   if (!ACCEPTED_RECEIPT_TYPES.has(file.type)) {
     return {
       ok: false,
-      message: "Choose a JPG, PNG, HEIC, or WebP image.",
+      message: "Choose a JPG, PNG, or WebP image.",
     };
   }
 

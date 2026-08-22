@@ -55,12 +55,12 @@ export default function ReceiptInput({
           {file ? file.name : "Take a photo or choose an image"}
         </span>
         <span className="upload-hint">
-          Keep the full receipt visible · JPG, PNG, HEIC or WebP · 10 MB max
+          Keep the full receipt visible · JPG, PNG or WebP · 10 MB max
         </span>
         <input
           aria-label="Receipt image"
           type="file"
-          accept="image/jpeg,image/png,image/heic,image/heif,image/webp"
+          accept="image/jpeg,image/png,image/webp"
           capture="environment"
           disabled={disabled}
           onChange={handleFileChange}

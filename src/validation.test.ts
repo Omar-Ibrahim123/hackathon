@@ -3,22 +3,24 @@ import { describe, expect, it } from "vitest";
 import { validateManualItem, validateReceiptFile } from "./validation";
 
 describe("validateReceiptFile", () => {
-  it("accepts grocery receipt images", () => {
-    expect(
-      validateReceiptFile(
-        new File(["x"], "receipt.jpg", { type: "image/jpeg" }),
-      ),
-    ).toEqual({ ok: true });
+  it.each([
+    ["receipt.jpg", "image/jpeg"],
+    ["receipt.png", "image/png"],
+    ["receipt.webp", "image/webp"],
+  ])("accepts backend-supported receipt image %s", (name, type) => {
+    expect(validateReceiptFile(new File(["x"], name, { type }))).toEqual({
+      ok: true,
+    });
   });
 
-  it("rejects unsupported receipt files", () => {
-    expect(
-      validateReceiptFile(
-        new File(["x"], "receipt.pdf", { type: "application/pdf" }),
-      ),
-    ).toEqual({
+  it.each([
+    ["receipt.heic", "image/heic"],
+    ["receipt.heif", "image/heif"],
+    ["receipt.pdf", "application/pdf"],
+  ])("rejects backend-unsupported receipt file %s", (name, type) => {
+    expect(validateReceiptFile(new File(["x"], name, { type }))).toEqual({
       ok: false,
-      message: "Choose a JPG, PNG, HEIC, or WebP image.",
+      message: "Choose a JPG, PNG, or WebP image.",
     });
   });
 });
