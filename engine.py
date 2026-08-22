@@ -14,10 +14,12 @@ __all__ = ["CarbonEngine", "OcrUnavailableError", "OcrFailedError"]
 
 
 class CarbonEngine:
-    """Ties the whole EcoReceipt pipeline together: OCR -> local dataset
-    match -> Climatiq API match -> Gemini estimate, in that order, so each
-    item only falls through to a slower/costlier stage if the previous one
-    couldn't identify it."""
+    """Ties the whole EcoReceipt pipeline together: OCR -> Climatiq API match
+    -> local dataset match -> Claude estimate, in that order. Climatiq is
+    queried for every item so footprints come from its dataset; the local
+    CSV match only fills in when Climatiq can't identify the item (and
+    still supplies eco-swap recommendations), and Claude is the last
+    resort for anything neither source recognizes."""
 
     def __init__(self):
         self.matcher = ReceiptMatcher(EMISSION_FACTORS_CSV)
@@ -34,11 +36,7 @@ class CarbonEngine:
         result = process_receipt_items(parsed_items, self.dataset_df, self.matcher)
 
         for line_item in result["line_items"]:
-            if line_item["status"] != "UNMATCHED":
-                line_item.setdefault("source", "LOCAL_DATASET")
-                continue
-
-            self._resolve_unmatched(line_item)
+            self._resolve_line_item(line_item)
 
         result["summary"]["total_co2e_kg"] = round(
             sum(item["item_co2e_kg"] for item in result["line_items"]), 2
@@ -46,12 +44,22 @@ class CarbonEngine:
 
         return result
 
-    def _resolve_unmatched(self, line_item: dict) -> None:
+    def _resolve_line_item(self, line_item: dict) -> None:
+        """Climatiq is queried for every item, so footprints reflect its
+        dataset rather than the local CSV. The local dataset match (already
+        computed by process_receipt_items) is only kept when Climatiq can't
+        identify the item, and still backs the eco-swap recommendations."""
         raw_item = line_item["raw_item"]
         qty = line_item["qty"]
+        # The local dataset match already ran in process_receipt_items; its
+        # canonical name (e.g. "Ground Beef") is a far cleaner Climatiq
+        # search query than the raw, abbreviation-laden receipt text.
+        query_hint = line_item["matched_item"] if line_item["status"] != "UNMATCHED" else None
 
         if self.climatiq is not None:
-            climatiq_result = self.climatiq.fetch_item_footprint(raw_item, qty)
+            climatiq_result = self.climatiq.fetch_item_footprint(
+                raw_item, qty, query_hint=query_hint
+            )
             if climatiq_result["status"] == "SUCCESS":
                 line_item.update(
                     matched_item=climatiq_result["matched_item"],
@@ -63,6 +71,10 @@ class CarbonEngine:
                 )
                 return
 
+        if line_item["status"] != "UNMATCHED":
+            line_item.setdefault("source", "LOCAL_DATASET")
+            return
+
         fallback_result = estimate_unmatched_item(raw_item)
         item_co2e = round(
             fallback_result["co2e_per_kg"] * fallback_result["default_unit_weight_kg"] * qty,
@@ -73,6 +85,6 @@ class CarbonEngine:
             category=fallback_result["category"],
             item_co2e_kg=item_co2e,
             confidence_score=fallback_result["confidence_score"],
-            status="ESTIMATED" if fallback_result["status"] == "FALLBACK_GEMINI_ESTIMATED" else "UNMATCHED",
+            status="ESTIMATED" if fallback_result["status"] == "FALLBACK_CLAUDE_ESTIMATED" else "UNMATCHED",
             source=fallback_result["status"],
         )

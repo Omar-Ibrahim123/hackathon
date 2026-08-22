@@ -1,28 +1,21 @@
-import importlib
 import json
 import os
 
-try:
-    # Imported dynamically so static analyzers / environments without the
-    # optional google-genai SDK installed don't need it just to import this
-    # module.
-    genai = importlib.import_module("google.genai")
-    types = genai.types
-except ImportError:
-    genai = None
-    types = None
+import anthropic
+
+MODEL = "claude-haiku-4-5"
 
 DEFAULT_CO2E_PER_KG = 1.5  # rough average grocery-item factor
 DEFAULT_UNIT_WEIGHT_KG = 0.5
 
 CARBON_ESTIMATE_SCHEMA = {
-    "type": "OBJECT",
+    "type": "object",
     "properties": {
-        "matched_item": {"type": "STRING"},
-        "category": {"type": "STRING"},
-        "co2e_per_kg": {"type": "NUMBER"},
-        "default_unit_weight_kg": {"type": "NUMBER"},
-        "reasoning": {"type": "STRING"},
+        "matched_item": {"type": "string"},
+        "category": {"type": "string"},
+        "co2e_per_kg": {"type": "number"},
+        "default_unit_weight_kg": {"type": "number"},
+        "reasoning": {"type": "string"},
     },
     "required": [
         "matched_item",
@@ -31,6 +24,7 @@ CARBON_ESTIMATE_SCHEMA = {
         "default_unit_weight_kg",
         "reasoning",
     ],
+    "additionalProperties": False,
 }
 
 
@@ -47,15 +41,15 @@ def _default_estimate(raw_item_string: str, status: str) -> dict:
 
 
 def estimate_unmatched_item(raw_item_string: str) -> dict:
-    """Uses Gemini to estimate carbon emissions for items the local dataset
+    """Uses Claude to estimate carbon emissions for items the local dataset
     and Climatiq API both failed to match. Degrades to a fixed average
-    grocery-item factor if GEMINI_API_KEY isn't configured or the call
+    grocery-item factor if ANTHROPIC_API_KEY isn't configured or the call
     fails, so the pipeline never blocks on this step."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key or genai is None or types is None:
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
         return _default_estimate(raw_item_string, "FALLBACK_DEFAULT")
 
-    client = genai.Client(api_key=api_key)
+    client = anthropic.Anthropic(api_key=api_key)
 
     prompt = f"""
     Analyze this raw grocery receipt item string: "{raw_item_string}"
@@ -65,16 +59,17 @@ def estimate_unmatched_item(raw_item_string: str) -> dict:
     """
 
     try:
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=CARBON_ESTIMATE_SCHEMA,
-            ),
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+            output_config={
+                "format": {"type": "json_schema", "schema": CARBON_ESTIMATE_SCHEMA}
+            },
         )
 
-        data = json.loads(response.text)
+        text = next(block.text for block in response.content if block.type == "text")
+        data = json.loads(text)
         return {
             "matched_item": data.get("matched_item", raw_item_string),
             "category": data.get("category", "Uncategorized"),
@@ -84,11 +79,11 @@ def estimate_unmatched_item(raw_item_string: str) -> dict:
             ),
             "eco_swap_id": None,
             "confidence_score": 0.5,
-            "status": "FALLBACK_GEMINI_ESTIMATED",
+            "status": "FALLBACK_CLAUDE_ESTIMATED",
         }
 
     except Exception as e:
-        print(f"[Warning] Gemini fallback failed: {e}")
+        print(f"[Warning] Claude fallback failed: {e}")
         return _default_estimate(raw_item_string, "FALLBACK_ERROR")
 
 

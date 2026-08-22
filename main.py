@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 
-load_dotenv()  # must run before CarbonEngine() reads CLIMATIQ_API_KEY / GEMINI_API_KEY
+load_dotenv()  # must run before CarbonEngine() reads CLIMATIQ_API_KEY / ANTHROPIC_API_KEY
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware

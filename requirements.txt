@@ -4,5 +4,5 @@ python-multipart
 pandas
 requests
 streamlit
-google-genai
+anthropic
 python-dotenv
