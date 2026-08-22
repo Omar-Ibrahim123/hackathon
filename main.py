@@ -58,10 +58,29 @@ class TripItemModel(BaseModel):
     co2eKg: float = Field(ge=0, allow_inf_nan=False)
 
 
+class EcoSwapRecommendationModel(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    originalItem: str = Field(min_length=1)
+    originalCo2eKg: float = Field(ge=0, allow_inf_nan=False)
+    recommendedSwap: str = Field(min_length=1)
+    swapCo2eKg: float = Field(ge=0, allow_inf_nan=False)
+    potentialSavingsKg: float = Field(gt=0, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def replacement_reduces_emissions(self):
+        if self.swapCo2eKg >= self.originalCo2eKg:
+            raise ValueError("Eco-swap replacements must reduce emissions.")
+        return self
+
+
 class NewTripModel(BaseModel):
     source: Literal["receipt", "manual"]
     totalCo2eKg: float = Field(ge=0, allow_inf_nan=False)
     items: list[TripItemModel]
+    ecoSwapRecommendations: list[EcoSwapRecommendationModel] = Field(
+        default_factory=list
+    )
 
     @model_validator(mode="after")
     def item_ids_are_unique(self):
