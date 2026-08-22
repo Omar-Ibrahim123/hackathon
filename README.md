@@ -28,6 +28,7 @@ There is no fabricated fallback estimate. Items that cannot be matched locally o
 - Eco-swap recommendations when local factor rows include swap IDs.
 - FastAPI endpoints for image uploads and pre-parsed items.
 - Streamlit interface with receipt upload and summary visualization.
+- Manual CSV/JSON item uploads with `raw_item`, `qty`, and optional `price_usd` fields.
 
 ## Setup
 
@@ -68,6 +69,23 @@ The unit tests mock external API responses:
 
 ```bash
 python -m unittest -v test_backend_tests.py
+```
+
+## Upload Items Manually
+
+In the Streamlit sidebar, use **Or upload items...** instead of the receipt image uploader.
+CSV files must include `raw_item` and may include `qty` and `price_usd`:
+
+```csv
+raw_item,qty,price_usd
+bread,2,7.00
+oat milk,1,4.50
+```
+
+JSON files may be a list or an object containing an `items` list:
+
+```json
+{"items": [{"raw_item": "bread", "qty": 2, "price_usd": 7.00}]}
 ```
 
 To test a live Climatiq key without storing it in source code or chat:
