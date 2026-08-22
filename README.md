@@ -1,25 +1,59 @@
 # EcoReceipt
 
-EcoReceipt analyzes grocery receipt items and estimates their carbon footprint.
+EcoReceipt analyzes grocery receipt photos and estimates the carbon footprint of each purchase.
+
+## Architecture
+
+Each item on a receipt is resolved through a fallback chain, cheapest/most-reliable first:
+
+1. **Local dataset match** (`matcher.py` + `emission_factors.csv`) — offline fuzzy matching against ~40 common grocery items, free and instant.
+2. **Climatiq API** (`api_client.py`) — queried for items the local dataset doesn't recognize.
+3. **Gemini estimate** (`fallback.py`) — used as a last resort for anything still unmatched; degrades to a fixed average grocery factor if `GEMINI_API_KEY` isn't set, so the pipeline never blocks.
+
+Receipt photos are turned into structured line items by `ocr.py`, which uses Gemini's vision model (no separate OCR engine/binary required). `engine.py`'s `CarbonEngine` orchestrates the whole pipeline, and `calculator.py` does the local dataset matching + eco-swap recommendation math.
+
+`main.py` exposes this as a REST API (FastAPI). `app.py` is a Streamlit demo UI for local testing.
 
 ## Implemented Features
 
-- Climatiq API integration that searches emission factors and requests CO2e estimates.
-- Quantity-aware handling for weight-based and money-based Climatiq factors.
-- Structured success, unmatched-item, and API-failure responses.
-- Receipt-level carbon calculations with total footprint and per-item breakdowns.
-- Local fuzzy matching and emission-factor calculations through `calculator.py`.
+- Gemini-vision OCR that turns a receipt photo directly into structured line items.
+- Local, offline fuzzy matching against a seeded emission-factors dataset (`matcher.py`, `emission_factors.csv`).
+- Climatiq API integration as a second-tier match for items missing from the local dataset.
+- Gemini-based carbon estimate as a final fallback for unrecognized items, with a safe default when no API key is configured.
+- Receipt-level carbon calculations with total footprint, per-item breakdown, and confidence scores.
 - Eco-swap recommendations ranked by potential carbon savings.
-- Streamlit interface with receipt image upload, summary metrics, a receipt breakdown table, and a footprint-by-category chart.
-- Environment-based API authentication through `CLIMATIQ_API_KEY`.
+- FastAPI backend (`main.py`) with `/api/receipts/scan` (image upload) and `/api/receipts/analyze` (pre-parsed items) endpoints, CORS-enabled for a separate frontend/mobile client.
+- Streamlit interface (`app.py`) with receipt image upload, summary metrics, a receipt breakdown table, and a footprint-by-category chart.
 
-## Run the Streamlit App
-
-Install the runtime dependencies and set your Climatiq API key:
+## Setup
 
 ```bash
-export CLIMATIQ_API_KEY="your_api_key"
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Environment variables (both optional — the pipeline degrades gracefully without them):
+
+```bash
+export CLIMATIQ_API_KEY="your_climatiq_key"   # second-tier item matching
+export GEMINI_API_KEY="your_gemini_key"       # receipt OCR + last-resort estimation
+```
+
+## Run the Backend API
+
+```bash
+uvicorn main:app --reload
+```
+
+- `GET /health` — liveness check.
+- `POST /api/receipts/scan` — multipart image upload (`file`), runs OCR + full carbon analysis.
+- `POST /api/receipts/analyze` — JSON body `{"items": [{"raw_item": "...", "qty": 1}]}`, skips OCR.
+
+## Run the Streamlit Demo
+
+```bash
 streamlit run app.py
 ```
 
-The current interface uses sample OCR output after an image is uploaded. OCR integration is the next step.
+Falls back to a sample receipt if `GEMINI_API_KEY` isn't set, so the UI is demoable without live OCR.
