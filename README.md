@@ -56,4 +56,34 @@ uvicorn main:app --reload
 streamlit run app.py
 ```
 
+Falls back to a sample receipt if `GEMINI_API_KEY` isn't set, so the UI is demoable without live OCR.
+
+## Run the Frontend
+
+Install frontend dependencies:
+
+```bash
+npm install
+```
+
+Mock mode is the default and does not require the backend:
+
+```bash
+npm run dev
+```
+
+For live mode, start FastAPI in one terminal:
+
+```bash
+source .venv/bin/activate
+uvicorn main:app --reload --port 8000
+```
+
+Then start Vite in another terminal with the live API settings:
+
+```bash
+VITE_API_MODE=live VITE_API_BASE_URL=http://localhost:8000 npm run dev
+```
+
+Manual grocery calculations work without external API keys for locally matched items. Receipt photo scanning requires `GEMINI_API_KEY`; without it, the API returns a service-unavailable error that the frontend displays without substituting mock data.
 Falls back to a sample receipt if `ANTHROPIC_API_KEY` isn't set, so the UI is demoable without live OCR.
