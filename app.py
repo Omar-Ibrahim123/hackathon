@@ -3,7 +3,8 @@ import os
 from dotenv import load_dotenv
 import streamlit as st  # type: ignore[import-not-found]
 
-from engine import CarbonEngine, OcrFailedError, OcrUnavailableError
+from engine import CarbonEngine
+from ocr import OcrFailedError, OcrUnavailableError
 
 
 load_dotenv()
