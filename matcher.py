@@ -12,6 +12,29 @@ _NOISE_PATTERN = re.compile(
 _NON_ALPHA_PATTERN = re.compile(r"[^A-Z\s]")
 _WHITESPACE_PATTERN = re.compile(r"\s+")
 
+# Receipt-scanning OCR occasionally extracts non-merchandise lines (totals,
+# tax, payment method, transaction metadata) as if they were purchased
+# items despite being told not to. A line counts as boilerplate only when
+# EVERY one of its words is in this set, never on a single shared word, so
+# a real product that happens to contain one of these words (e.g. "Total
+# Cereal", "Balance Bar") is never mistaken for one.
+_BOILERPLATE_WORDS = {
+    "SUBTOTAL", "SUB", "TOTAL", "TOTALS", "TAX", "TAXES", "HST", "GST", "PST", "QST", "VAT",
+    "DEBIT", "CREDIT", "CASH", "CHANGE", "TENDER", "TENDERED", "BALANCE", "DUE", "AMOUNT",
+    "VISA", "MASTERCARD", "AMEX", "DISCOVER", "INTERAC", "CARD", "NUMBER", "TYPE", "PURCHASE",
+    "ACCT", "ACCOUNT", "REFERENCE", "REF", "INVOICE", "AUTH", "AUTHOR", "AUTHORIZATION",
+    "APPROVAL", "APPROVED", "TRANSACTION", "RECORD", "DATE", "TIME", "THANK", "YOU",
+    "CUSTOMER", "MERCHANT", "COPY", "SIGNATURE", "TERMINAL", "ID", "NO", "REGISTER", "CASHIER",
+}
+
+
+def is_boilerplate_line(raw_item: str) -> bool:
+    """True when raw_item is receipt metadata (subtotal/tax/total/payment/
+    transaction info) rather than a purchased product, based on every
+    normalized word being a known boilerplate term."""
+    words = ReceiptMatcher.normalize(raw_item).split()
+    return bool(words) and all(word in _BOILERPLATE_WORDS for word in words)
+
 
 class ReceiptMatcher:
     """Fuzzy-matches raw OCR/receipt item strings against a local CSV of

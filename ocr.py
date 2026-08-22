@@ -73,14 +73,18 @@ def extract_items_from_receipt(image_bytes: bytes, content_type: str = "image/jp
     client = anthropic.Anthropic(api_key=api_key)
 
     prompt = (
-        "This image is a grocery/retail receipt. Extract every purchased "
-        "line item (ignore subtotals, tax, totals, coupons, and payment "
-        "info). For each item, return the raw item text as printed, the "
-        "purchased quantity (default to 1 if not shown), the weight and "
-        "weight unit if the item is sold/priced by weight (e.g. produce or "
-        "deli items showing something like '1.24 lb @ $2.99/lb' — null for "
-        "both if no weight is printed), and the total price printed for "
-        "that line in USD (null if illegible)."
+        "This image is a grocery/retail receipt. Extract only the "
+        "purchased merchandise line items. Do NOT return non-merchandise "
+        "lines such as subtotal, tax/HST/GST/PST, total, payment method or "
+        "card details (debit/credit/cash/change/card number), transaction "
+        "metadata (reference/invoice/authorization numbers, date/time, "
+        "account/terminal info), or footer text like 'thank you'. For each "
+        "item, return the raw item text as printed, the purchased quantity "
+        "(default to 1 if not shown), the weight and weight unit if the "
+        "item is sold/priced by weight (e.g. produce or deli items showing "
+        "something like '1.24 lb @ $2.99/lb' — null for both if no weight "
+        "is printed), and the total price printed for that line in USD "
+        "(null if illegible)."
     )
 
     try:
