@@ -87,17 +87,15 @@ class CarbonEngine:
         return result
 
     def _resolve_line_item(self, line_item: dict) -> None:
-        """The local dataset match (already computed by
-        process_receipt_items) is trusted as-is whenever it found one.
-        Climatiq is only queried, and can only fill in matched_item/
-        category/item_co2e_kg, for items the local dataset left
-        UNMATCHED."""
-        if line_item["status"] != "UNMATCHED":
-            line_item.setdefault("source", "LOCAL_DATASET")
-            return
-
+        """Prefer Climatiq when configured, retaining the local catalog
+        match when the provider cannot resolve the item."""
         raw_item = line_item["raw_item"]
         qty = line_item["qty"]
+        query_hint = (
+            line_item["matched_item"]
+            if line_item["status"] != "UNMATCHED"
+            else None
+        )
 
         # Prefer the receipt's own weight when it lists one (more accurate
         # than any qty-based estimate); fall back to its printed price when
@@ -108,7 +106,11 @@ class CarbonEngine:
 
         if self.climatiq is not None:
             climatiq_result = self.climatiq.fetch_item_footprint(
-                raw_item, qty, price_usd=price_usd, weight_kg=weight_kg
+                raw_item,
+                qty,
+                price_usd=price_usd,
+                weight_kg=weight_kg,
+                query_hint=query_hint,
             )
             if climatiq_result["status"] == "SUCCESS":
                 line_item.update(
@@ -120,6 +122,10 @@ class CarbonEngine:
                     source="CLIMATIQ_API",
                 )
                 return
+
+        if line_item["status"] != "UNMATCHED":
+            line_item.setdefault("source", "LOCAL_DATASET")
+            return
 
         fallback_result = estimate_unmatched_item(raw_item)
         item_co2e = round(
