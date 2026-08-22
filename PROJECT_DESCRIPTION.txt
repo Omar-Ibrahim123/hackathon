@@ -1,0 +1,175 @@
+EcoReceipt — Project Description
+================================
+
+Three versions of the same pitch, at increasing levels of detail.
+Pick whichever fits the slot you're filling.
+
+
+--------------------------------------------------------------------
+SIMPLE (elevator pitch, ~30 seconds)
+--------------------------------------------------------------------
+
+EcoReceipt turns a photo of your grocery receipt into a carbon
+footprint.
+
+Snap the receipt, and we read every line item, estimate the emissions
+behind each one, and show you the total in terms you actually feel —
+like the number of miles you'd have to drive to match it. Then we tell
+you the handful of swaps that would cut it the most.
+
+Most people want to shop greener but have no idea which items in their
+cart actually matter. EcoReceipt answers that in about five seconds,
+using a receipt they were already holding.
+
+
+--------------------------------------------------------------------
+MEDIUM (~150 words, for a submission form or landing page)
+--------------------------------------------------------------------
+
+EcoReceipt is a web app that estimates the carbon footprint of your
+groceries from a photo of your receipt.
+
+You upload or snap a receipt and EcoReceipt reads it, identifies each
+product, and calculates the emissions attached to it. You get a total
+footprint, a per-item breakdown showing exactly which purchases
+dominate, and a real-world equivalent — the miles of driving your trip
+is worth — so the number means something.
+
+The part that changes behaviour is eco-swaps: for each high-impact
+item, EcoReceipt suggests a lower-carbon alternative and shows the
+savings, ranked so the biggest wins come first. Swapping ground beef
+for lentils, for example, is a far larger cut than anything else in a
+typical cart.
+
+Every trip is saved to a history, and a progress view tracks your
+footprint across recent shops, so improvement is visible over time.
+No manual data entry, no spreadsheets, no guessing.
+
+
+--------------------------------------------------------------------
+DETAILED (full pitch / demo script / devpost writeup)
+--------------------------------------------------------------------
+
+THE PROBLEM
+
+Food is responsible for roughly a quarter of global greenhouse gas
+emissions, and household grocery shopping is where most people have
+the most direct, most frequent influence over it. The problem isn't
+willingness — it's information.
+
+Emissions are wildly uneven across a cart, and the distribution is
+invisible at the shelf. A kilogram of beef carries around thirty times
+the emissions of a kilogram of lentils. Two carts that cost the same
+can differ enormously in footprint. Nothing at the point of purchase
+tells you which is which, and existing carbon calculators demand that
+you type in every item by hand — which nobody sustains past the first
+week.
+
+The information exists. It just never reaches the person deciding.
+
+
+WHAT ECORECEIPT DOES
+
+EcoReceipt removes the data entry entirely. You give it the receipt
+you already have, and it does the rest.
+
+  1. Snap or upload a photo of a grocery receipt.
+  2. EcoReceipt reads the receipt and extracts the line items —
+     including the abbreviated, half-mangled product names that real
+     receipts are full of.
+  3. Each item is matched to an emissions factor and scaled by
+     quantity and typical weight.
+  4. You get a result: total footprint, per-item breakdown ranked by
+     impact, confidence indicators, and a driving-distance equivalent.
+  5. You get eco-swaps — concrete lower-carbon substitutes for your
+     worst offenders, ranked by how much carbon each would actually
+     save.
+
+There's also manual entry for anyone without a receipt on hand, or for
+planning a shop before making it.
+
+
+HOW IT WORKS
+
+The hard problem is identification. Receipts don't say "organic whole
+wheat bread" — they say "ORG BRD WHL WHT". Turning that into an
+emissions number reliably is the core of the system.
+
+We solve it with a layered resolution chain, so that a miss at one
+level is caught by the next:
+
+  - Reading the receipt. A vision model converts the photo straight
+    into structured line items. No separate OCR engine, no
+    preprocessing pipeline, and it handles crumpled receipts, odd
+    lighting, and retailer-specific abbreviations far better than
+    traditional text extraction.
+
+  - Primary matching. Each identified item is looked up against a
+    live emissions database, so footprints reflect a maintained
+    real-world dataset rather than a hardcoded guess.
+
+  - Offline fallback. A curated local dataset of common grocery items,
+    with fuzzy keyword matching, catches anything the live lookup
+    can't identify. This also means the core experience keeps working
+    with no network and no API keys — which matters for a demo, and
+    matters more for reliability.
+
+  - Last-resort estimation. Anything still unmatched gets a model-
+    generated estimate, and failing that, a conservative average
+    grocery factor.
+
+The pipeline never blocks and never dead-ends. An unrecognized item
+degrades to a lower-confidence estimate instead of breaking the
+receipt, and confidence is surfaced in the result rather than hidden.
+
+Eco-swap recommendations come from the curated dataset, where each
+high-impact item is mapped to a lower-carbon substitute in the same
+role. Suggestions only appear when the swap genuinely saves carbon,
+and they're ordered by size of saving, so the first thing you read is
+the thing most worth doing.
+
+
+MAKING THE NUMBER MEAN SOMETHING
+
+"14.2 kg CO2e" is not a number most people can act on. Every total is
+also expressed as an equivalent driving distance, using the standard
+EPA per-mile figure. "This trip is worth 78 miles of driving" lands in
+a way the raw figure doesn't.
+
+Trips are saved automatically to a history you can browse, with a
+read-only detail view for any past shop. A progress view charts your
+footprint across recent trips, turning one-off curiosity into
+something you can actually watch improve.
+
+
+TECHNICAL NOTES
+
+React and TypeScript on the front end, a Python API on the back, and
+SQLite for saved trips.
+
+Two things we're quietly proud of:
+
+  - Graceful degradation is designed in, not bolted on. Every external
+    dependency has a fallback, and the app is fully demoable with zero
+    API keys configured.
+
+  - History storage is swappable behind a single contract. The app
+    runs against browser storage or a real backend without the pages
+    or the progress calculations knowing which is which — and when a
+    user moves from one to the other, their existing trips migrate
+    atomically, preserving original timestamps, with old links still
+    resolving afterward. Nothing is deleted until the migration is
+    confirmed complete.
+
+
+WHY IT MATTERS
+
+The gap between wanting to shop sustainably and knowing how to isn't a
+motivation gap, it's a feedback gap. People get no signal about the
+carbon consequences of their choices, so those choices never change.
+
+EcoReceipt closes that loop with the lowest-friction input possible: a
+receipt you're already holding, a photo you already know how to take.
+It turns an abstract global problem into a specific, personal, ranked
+list of things you could do differently next week — and then shows you
+whether you did.
