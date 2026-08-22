@@ -1,15 +1,15 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
-import App from "./App";
+import { renderHome } from "./test/renderHome";
 
 afterEach(cleanup);
 
 describe("manual grocery calculation", () => {
   it("clears the draft, validation error, and every added product", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderHome();
 
     await user.click(screen.getByRole("tab", { name: "Enter manually" }));
 
@@ -51,7 +51,7 @@ describe("manual grocery calculation", () => {
 
   it("builds a product list without type or category controls", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderHome();
 
     await user.click(screen.getByRole("tab", { name: "Enter manually" }));
 

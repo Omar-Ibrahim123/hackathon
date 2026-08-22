@@ -1,4 +1,5 @@
 import type { CarbonResult } from "../types";
+import { formatEmissions } from "../format";
 
 interface ResultPanelProps {
   result: CarbonResult;
@@ -16,10 +17,6 @@ const CHART_COLOURS = [
   "#88d7dc",
   "#dca0ba",
 ];
-
-function formatEmissions(value: number): string {
-  return `${value.toLocaleString("en-CA", { maximumFractionDigits: 2 })} kg CO₂e`;
-}
 
 export default function ResultPanel({ result }: ResultPanelProps) {
   const itemTotal = result.items.reduce((total, item) => total + item.co2eKg, 0);
