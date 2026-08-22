@@ -4,24 +4,61 @@ import { analyzeReceipt, calculateManual } from "../api";
 import ManualEntryForm from "../components/ManualEntryForm";
 import ReceiptInput from "../components/ReceiptInput";
 import ResultPanel from "../components/ResultPanel";
+import { useTripRepository } from "../history/TripRepositoryContext";
+import { toNewTrip } from "../history/tripMapping";
+import type { SavedTrip, TripSource } from "../history/types";
 import type { CarbonResult } from "../types";
 
 type Request = () => Promise<CarbonResult>;
 type InputMode = "receipt" | "manual";
+interface ActiveResult {
+  source: TripSource;
+  result: CarbonResult;
+}
+interface LastRequest {
+  source: TripSource;
+  request: Request;
+}
 
 export default function HomePage() {
+  const repository = useTripRepository();
   const [inputMode, setInputMode] = useState<InputMode>("receipt");
-  const [result, setResult] = useState<CarbonResult | null>(null);
+  const [activeResult, setActiveResult] = useState<ActiveResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastRequest, setLastRequest] = useState<Request | null>(null);
+  const [lastRequest, setLastRequest] = useState<LastRequest | null>(null);
+  const [savedTrip, setSavedTrip] = useState<SavedTrip | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  async function runRequest(request: Request) {
-    setLastRequest(() => request);
+  async function saveResult(result: CarbonResult, source: TripSource) {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      setSavedTrip(await repository.saveTrip(toNewTrip(result, source)));
+    } catch (saveFailure) {
+      setSaveError(
+        saveFailure instanceof Error
+          ? saveFailure.message
+          : "Unable to save trip history.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function runRequest(source: TripSource, request: Request) {
+    setLastRequest({ source, request });
     setIsLoading(true);
     setError(null);
+    setSaveError(null);
+    setSavedTrip(null);
     try {
-      setResult(await request());
+      const result = await request();
+      setActiveResult({ source, result });
+      if (source === "receipt") {
+        await saveResult(result, source);
+      }
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -34,9 +71,11 @@ export default function HomePage() {
   }
 
   function clearManualSearch() {
-    setResult(null);
+    setActiveResult(null);
     setError(null);
     setLastRequest(null);
+    setSavedTrip(null);
+    setSaveError(null);
   }
 
   return (
@@ -91,7 +130,9 @@ export default function HomePage() {
           >
             <ReceiptInput
               disabled={isLoading}
-              onSubmit={(file) => void runRequest(() => analyzeReceipt(file))}
+              onSubmit={(file) =>
+                void runRequest("receipt", () => analyzeReceipt(file))
+              }
             />
           </div>
           <div
@@ -104,7 +145,7 @@ export default function HomePage() {
               disabled={isLoading}
               onClear={clearManualSearch}
               onSubmit={(items) =>
-                void runRequest(() => calculateManual(items))
+                void runRequest("manual", () => calculateManual(items))
               }
             />
           </div>
@@ -125,14 +166,42 @@ export default function HomePage() {
             <p>{error}</p>
           </div>
           {lastRequest && (
-            <button type="button" onClick={() => void runRequest(lastRequest)}>
+            <button
+              type="button"
+              onClick={() =>
+                void runRequest(lastRequest.source, lastRequest.request)
+              }
+            >
               Try again
             </button>
           )}
         </div>
       )}
 
-      {result && !isLoading && <ResultPanel result={result} />}
+      {activeResult && !isLoading && (
+        <>
+          <ResultPanel result={activeResult.result} />
+          <div className="save-actions" aria-live="polite">
+            {activeResult.source === "receipt" && savedTrip && (
+              <p className="save-success">Saved to history</p>
+            )}
+            {activeResult.source === "manual" && (
+              <button
+                className="primary-button save-button"
+                type="button"
+                disabled={isSaving || savedTrip !== null}
+                onClick={() =>
+                  void saveResult(activeResult.result, activeResult.source)
+                }
+              >
+                <span>{savedTrip ? "Saved" : isSaving ? "Saving..." : "Save to history"}</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            )}
+          </div>
+          {saveError && <p className="field-error save-error" role="alert">{saveError}</p>}
+        </>
+      )}
     </main>
   );
 }
