@@ -80,10 +80,22 @@ class ClimatiqAPIClient:
         often a zero-result miss even though a shorter core phrase within it
         ("wheat bread") is indexed. Dropping one leading word at a time
         keeps the trailing, most specific/noun-like part of the phrase for
-        as long as possible."""
+        as long as possible.
+
+        Never drops below two words when the query has that many: a single
+        leftover generic word (e.g. "chili" out of "Doritos Chili") is
+        exactly the kind of query Climatiq's search will happily resolve to
+        an unrelated activity in some other sector (a spice, a place name,
+        a random processed-meat product) rather than reporting no match.
+        """
         tokens = ReceiptMatcher.normalize(query_text).split()
-        candidates = [" ".join(tokens[i:]) for i in range(len(tokens))]
-        return candidates or [query_text]
+        if not tokens:
+            return [query_text]
+        min_words = min(2, len(tokens))
+        candidates = [
+            " ".join(tokens[i:]) for i in range(len(tokens) - min_words + 1)
+        ]
+        return candidates
 
     def fetch_item_footprint(
         self,
@@ -91,19 +103,15 @@ class ClimatiqAPIClient:
         qty: float = 1.0,
         price_usd: Optional[float] = None,
         weight_kg: Optional[float] = None,
-        query_hint: Optional[str] = None,
     ) -> dict:
         """
-        Queries Climatiq for the item emission factor.
+        Queries Climatiq for the item emission factor. Only called (by
+        CarbonEngine) for items the local dataset couldn't match, so
+        raw_item_string is always the raw, abbreviation-laden receipt text.
         Returns UNMATCHED only when Climatiq genuinely has no data for the
         item (a 200 with an empty result set); any request/API failure
         returns API_FAILED instead, so callers don't mistake one for the
         other.
-
-        query_hint, when given (e.g. a clean canonical name like "Ground
-        Beef" from the local dataset matcher), is searched instead of
-        raw_item_string: raw receipt text carries brand/pack-size noise
-        that Climatiq's search doesn't tolerate well.
 
         weight_kg / price_usd are the actual weight or price printed for
         this line item on the receipt. Weight is preferred whenever the
@@ -128,7 +136,7 @@ class ClimatiqAPIClient:
                 item_name = raw_item_string
                 unit_type = known_activity["unit_type"]
             else:
-                candidates = self._search_candidates(query_hint or raw_item_string)
+                candidates = self._search_candidates(raw_item_string)
                 best_match, error_message = self._search_best_match(candidates, preferred_unit_type)
                 if best_match is None and preferred_unit_type and error_message is None:
                     # Climatiq may not have a factor of the preferred type
