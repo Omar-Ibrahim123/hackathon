@@ -11,6 +11,7 @@ export interface ProgressSummary {
   tripCount: number;
   latestUploadChangePercent: number | null;
   averageTripCo2eKg: number | null;
+  totalTripCo2eKg: number;
   highestImpactTrip: SavedTrip | null;
 }
 
@@ -57,6 +58,7 @@ export function buildProgressSummary(trips: SavedTrip[]): ProgressSummary {
         : null,
     averageTripCo2eKg:
       recentTrips.length > 0 ? total / recentTrips.length : null,
+    totalTripCo2eKg: total,
     highestImpactTrip,
   };
 }
