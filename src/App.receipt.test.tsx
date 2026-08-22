@@ -17,9 +17,12 @@ describe("receipt calculation", () => {
     const file = new File(["receipt"], "receipt.jpg", {
       type: "image/jpeg",
     });
-    await user.upload(screen.getByLabelText("Receipt image"), file);
+    await user.upload(
+      screen.getByLabelText("Receipt or grocery item image"),
+      file,
+    );
     await user.click(
-      screen.getByRole("button", { name: "Calculate receipt" }),
+      screen.getByRole("button", { name: "Calculate footprint" }),
     );
 
     expect(

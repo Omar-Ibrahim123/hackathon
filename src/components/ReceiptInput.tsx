@@ -54,8 +54,8 @@ export default function ReceiptInput({
       <div className="section-heading">
         <span className="step-badge">01</span>
         <div>
-          <p className="eyebrow">Receipt scan</p>
-          <h2>Upload your grocery receipt</h2>
+          <p className="eyebrow">Image scan</p>
+          <h2>Upload a receipt or grocery item</h2>
         </div>
       </div>
 
@@ -66,7 +66,7 @@ export default function ReceiptInput({
         onClick={() => setCameraOpen(true)}
       >
         <span className="camera-icon" aria-hidden="true">📷</span>
-        Take a photo of your receipt
+        Take a photo of a receipt or grocery item
       </button>
 
       <CameraCapture
@@ -83,10 +83,10 @@ export default function ReceiptInput({
           {file ? file.name : "Choose an image from your device"}
         </span>
         <span className="upload-hint">
-          Keep the full receipt visible · JPG, PNG or WebP · 10 MB max
+          Keep the full receipt or grocery item visible · JPG, PNG or WebP · 10 MB max
         </span>
         <input
-          aria-label="Receipt image"
+          aria-label="Receipt or grocery item image"
           type="file"
           accept="image/jpeg,image/png,image/webp"
           disabled={disabled}
@@ -98,7 +98,7 @@ export default function ReceiptInput({
 
       {validFile && (
         <button className="primary-button" type="submit" disabled={disabled}>
-          Calculate receipt
+          Calculate footprint
           <span aria-hidden="true">→</span>
         </button>
       )}

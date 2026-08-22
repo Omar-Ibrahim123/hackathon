@@ -84,11 +84,12 @@ export default function HomePage() {
       <section className="hero">
         <p className="eyebrow">Know the impact of what you buy</p>
         <h1 data-route-heading tabIndex={-1}>
-          Turn your grocery list into a clearer carbon picture.
+          Turn your grocery list into a clear carbon picture.
         </h1>
         <p className="hero-copy">
-          Upload a receipt, take a picture, or enter your groceries. EcoReceipt
-          returns a simple footprint for the whole shop and every item in it.
+          Upload a receipt, scan an individual grocery item, or enter your
+          groceries manually. EcoReceipt returns a simple footprint for one
+          item or your whole shop.
         </p>
       </section>
 
