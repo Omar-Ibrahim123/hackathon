@@ -63,7 +63,16 @@ class CarbonEngine:
         """Climatiq is queried for every item, so footprints reflect its
         dataset rather than the local CSV. The local dataset match (already
         computed by process_receipt_items) is only kept when Climatiq can't
-        identify the item, and still backs the eco-swap recommendations."""
+        identify the item, and still backs the eco-swap recommendations.
+
+        Exception: items resolved by exact dataset id (manual search, where
+        the user picked the item directly) skip re-matching entirely —
+        querying Climatiq could return a different product than the one
+        actually selected."""
+        if line_item.get("exact_match"):
+            line_item.setdefault("source", "LOCAL_DATASET")
+            return
+
         raw_item = line_item["raw_item"]
         qty = line_item["qty"]
         # The local dataset match already ran in process_receipt_items; its

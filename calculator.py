@@ -28,9 +28,15 @@ def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher:
         weight = item.get("weight")
         weight_unit = item.get("weight_unit")
         price = item.get("price")
+        item_id = item.get("id")
 
-        # 1. Match the item using the fuzzy engine
-        match_res = matcher.match_item(raw_title)
+        # 1. Resolve the item. When the caller already knows the exact
+        # dataset id (e.g. the item came from manual search rather than
+        # OCR'd receipt text), look it up directly instead of fuzzy-matching
+        # the raw text — it's redundant and could in theory resolve to a
+        # different item than the one actually selected.
+        match_res = matcher.match_by_id(item_id) if item_id else matcher.match_item(raw_title)
+        is_exact_match = item_id is not None and match_res["status"] == "MATCHED"
 
         # 2. Handle unmatched items
         if match_res["status"] == "UNMATCHED":
@@ -65,7 +71,8 @@ def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher:
             "unit_weight_kg": unit_weight,
             "item_co2e_kg": item_co2e,
             "confidence_score": match_res["confidence_score"],
-            "status": match_res["status"]
+            "status": match_res["status"],
+            "exact_match": is_exact_match,
         })
 
         # 4. Check for eco-swaps and calculate potential carbon savings

@@ -127,6 +127,37 @@ class ReceiptMatcher:
             "id": best["id"],
         }
 
+    def match_by_id(self, item_id: str) -> dict:
+        """Looks up a dataset item directly by id, for callers (e.g. manual
+        item search) that already know exactly which item they mean —
+        fuzzy-matching the item's own canonical name back against itself
+        is redundant and, unlike match_item, isn't guaranteed to return
+        that same item if another entry scores just as well."""
+        item = next((it for it in self.items if it["id"] == item_id), None)
+
+        if item is None:
+            return {
+                "status": "UNMATCHED",
+                "matched_item": None,
+                "category": "Uncategorized",
+                "co2e_per_kg": 0.0,
+                "default_unit_weight_kg": 0.0,
+                "eco_swap_id": None,
+                "confidence_score": 0.0,
+                "id": None,
+            }
+
+        return {
+            "status": "MATCHED",
+            "matched_item": item["item_name"],
+            "category": item["category"],
+            "co2e_per_kg": item["co2e_per_kg"],
+            "default_unit_weight_kg": item["default_unit_weight_kg"],
+            "eco_swap_id": item["eco_swap_id"],
+            "confidence_score": 1.0,
+            "id": item["id"],
+        }
+
 
 # --- Example Usage ---
 if __name__ == "__main__":
