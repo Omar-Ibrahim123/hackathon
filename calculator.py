@@ -6,6 +6,55 @@ from typing import Any
 # separately installed package.
 ReceiptMatcher: Any = import_module("matcher").ReceiptMatcher
 
+
+def build_eco_swap_recommendations(
+    line_items: list,
+    dataset_df: pd.DataFrame,
+    matcher: ReceiptMatcher,
+) -> list[dict]:
+    id_map = dataset_df.set_index("id").to_dict(orient="index")
+    recommendations = []
+
+    for line_item in line_items:
+        match = matcher.match_item(line_item["raw_item"])
+        swap_id = match.get("eco_swap_id")
+        if (
+            match["status"] == "UNMATCHED"
+            or not swap_id
+            or swap_id not in id_map
+        ):
+            continue
+
+        swap = id_map[swap_id]
+        quantity = float(line_item.get("qty", 1.0))
+        original_co2e = round(float(line_item["item_co2e_kg"]), 2)
+        swap_co2e = round(
+            float(swap["co2e_per_kg"])
+            * float(swap["default_unit_weight_kg"])
+            * quantity,
+            2,
+        )
+        savings = round(original_co2e - swap_co2e, 2)
+        if savings <= 0:
+            continue
+
+        recommendations.append(
+            {
+                "original_item": line_item["matched_item"],
+                "original_co2e_kg": original_co2e,
+                "recommended_swap": swap["item_name"],
+                "swap_co2e_kg": swap_co2e,
+                "potential_savings_kg": savings,
+            }
+        )
+
+    return sorted(
+        recommendations,
+        key=lambda recommendation: recommendation["potential_savings_kg"],
+        reverse=True,
+    )
+
+
 def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher: ReceiptMatcher) -> dict:
     """
     Calculates total footprint and generates eco-swap recommendations.
@@ -15,12 +64,8 @@ def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher:
         dataset_df: Pandas DataFrame containing the emission factors
         matcher: Initialized ReceiptMatcher instance
     """
-    # Create a quick dictionary lookup for eco-swaps based on 'id'
-    id_map = dataset_df.set_index("id").to_dict(orient="index")
-    
     line_items = []
     total_co2e = 0.0
-    eco_swaps = []
 
     for item in parsed_items:
         raw_title = item.get("raw_item", "")
@@ -68,27 +113,9 @@ def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher:
             "status": match_res["status"]
         })
 
-        # 4. Check for eco-swaps and calculate potential carbon savings
-        swap_id = match_res.get("eco_swap_id")
-        if swap_id and swap_id in id_map:
-            swap_data = id_map[swap_id]
-            
-            # Calculate footprint if they had bought the alternative
-            swap_co2e_per_kg = swap_data["co2e_per_kg"]
-            swap_unit_weight = swap_data["default_unit_weight_kg"]
-            swap_item_co2e = round(swap_co2e_per_kg * swap_unit_weight * qty, 2)
-            
-            savings = round(item_co2e - swap_item_co2e, 2)
-            
-            # Only recommend if it actually saves carbon
-            if savings > 0:
-                eco_swaps.append({
-                    "original_item": match_res["matched_item"],
-                    "original_co2e_kg": item_co2e,
-                    "recommended_swap": swap_data["item_name"],
-                    "swap_co2e_kg": swap_item_co2e,
-                    "potential_savings_kg": savings
-                })
+    eco_swaps = build_eco_swap_recommendations(
+        line_items, dataset_df, matcher
+    )
 
     # 5. Return a clean payload ready for Person B's Streamlit frontend
     return {

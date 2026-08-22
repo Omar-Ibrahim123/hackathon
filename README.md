@@ -21,9 +21,9 @@ Receipt photos are turned into structured line items by `ocr.py`, which uses Cla
 - Climatiq API integration as the primary item match, with the local dataset as a fallback.
 - Claude-based carbon estimate as a final fallback for unrecognized items, with a safe default when no API key is configured.
 - Receipt-level carbon calculations with total footprint, per-item breakdown, and confidence scores.
-- Eco-swap recommendations ranked by potential carbon savings.
+- Eco-swap recommendations recalculated after final item resolution, ranked by potential carbon savings, and summarized with total estimated savings.
 - FastAPI backend (`main.py`) with `/api/receipts/scan` (image upload) and `/api/receipts/analyze` (pre-parsed items) endpoints, CORS-enabled for a separate frontend/mobile client.
-- SQLite-backed trip history with canonical IDs, durable migrated browser IDs, and REST endpoints for save, list, details, import, and delete.
+- SQLite-backed trip history with persisted eco-swap recommendations, canonical IDs, durable migrated browser IDs, and REST endpoints for save, list, details, import, and delete. Legacy trips without recommendations remain valid and return an empty list.
 - Streamlit interface (`app.py`) with receipt image upload, summary metrics, a receipt breakdown table, and a footprint-by-category chart.
 
 ## Setup
@@ -48,11 +48,11 @@ uvicorn main:app --reload
 ```
 
 - `GET /health` — liveness check.
-- `POST /api/receipts/scan` — multipart image upload (`file`), runs OCR + full carbon analysis.
-- `POST /api/receipts/analyze` — JSON body `{"items": [{"raw_item": "...", "qty": 1}]}`, skips OCR.
+- `POST /api/receipts/scan` — multipart image upload (`file`), runs OCR + full carbon analysis, and returns sorted eco-swap recommendations with total estimated savings.
+- `POST /api/receipts/analyze` — JSON body `{"items": [{"raw_item": "...", "qty": 1}]}`, skips OCR and returns the same calculation contract.
 - `GET /api/trips` — complete saved-trip history, newest first.
 - `GET /api/trips/{id}` — one trip by canonical or migrated browser ID.
-- `POST /api/trips` — saves a new normalized trip and returns its canonical ID and timestamp.
+- `POST /api/trips` — saves a normalized trip, including its ordered eco-swap recommendations, and returns its canonical ID and timestamp.
 - `POST /api/trips/import` — atomically migrates browser trips while preserving timestamps.
 - `DELETE /api/trips/{id}` — deletes by canonical or migrated browser ID.
 

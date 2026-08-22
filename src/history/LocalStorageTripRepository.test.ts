@@ -8,6 +8,15 @@ const newTrip: NewTrip = {
   source: "receipt",
   totalCo2eKg: 6.4,
   items: [{ id: "beef", name: "Ground beef", co2eKg: 3.1 }],
+  ecoSwapRecommendations: [
+    {
+      originalItem: "Ground beef",
+      originalCo2eKg: 3.1,
+      recommendedSwap: "Lentils",
+      swapCo2eKg: 0.41,
+      potentialSavingsKg: 2.69,
+    },
+  ],
 };
 
 describe("LocalStorageTripRepository", () => {
@@ -29,6 +38,38 @@ describe("LocalStorageTripRepository", () => {
     });
     await expect(repository.getTrip("trip-123")).resolves.toEqual(saved);
     await expect(repository.listTrips()).resolves.toEqual([saved]);
+    expect(JSON.parse(window.localStorage.getItem("greenercart.saved-trips")!))
+      .toMatchObject({ version: 2 });
+  });
+
+  it("loads version 1 trips with an empty recommendation list", async () => {
+    window.localStorage.setItem(
+      "greenercart.saved-trips",
+      JSON.stringify({
+        version: 1,
+        trips: [
+          {
+            id: "legacy-trip",
+            source: "receipt",
+            savedAt: "2026-08-01T12:00:00.000Z",
+            totalCo2eKg: 1.2,
+            items: [{ id: "milk", name: "Milk", co2eKg: 1.2 }],
+          },
+        ],
+      }),
+    );
+    const repository = new LocalStorageTripRepository(window.localStorage);
+
+    await expect(repository.listTrips()).resolves.toEqual([
+      {
+        id: "legacy-trip",
+        source: "receipt",
+        savedAt: "2026-08-01T12:00:00.000Z",
+        totalCo2eKg: 1.2,
+        items: [{ id: "milk", name: "Milk", co2eKg: 1.2 }],
+        ecoSwapRecommendations: [],
+      },
+    ]);
   });
 
   it("deletes only the requested trip", async () => {

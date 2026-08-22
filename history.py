@@ -56,10 +56,24 @@ class HistoryStore:
                     UNIQUE (trip_id, position)
                 );
 
+                CREATE TABLE IF NOT EXISTS trip_recommendations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+                    position INTEGER NOT NULL,
+                    original_item TEXT NOT NULL,
+                    original_co2e_kg REAL NOT NULL CHECK (original_co2e_kg >= 0),
+                    recommended_swap TEXT NOT NULL,
+                    swap_co2e_kg REAL NOT NULL CHECK (swap_co2e_kg >= 0),
+                    potential_savings_kg REAL NOT NULL CHECK (potential_savings_kg > 0),
+                    UNIQUE (trip_id, position)
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_trips_saved_at
                     ON trips(saved_at DESC, id DESC);
                 CREATE INDEX IF NOT EXISTS idx_trip_items_trip_id
                     ON trip_items(trip_id);
+                CREATE INDEX IF NOT EXISTS idx_trip_recommendations_trip_id
+                    ON trip_recommendations(trip_id);
                 """
             )
 
@@ -114,6 +128,28 @@ class HistoryStore:
                 for position, item in enumerate(trip["items"])
             ],
         )
+        connection.executemany(
+            """
+            INSERT INTO trip_recommendations (
+                trip_id, position, original_item, original_co2e_kg,
+                recommended_swap, swap_co2e_kg, potential_savings_kg
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    trip_id,
+                    position,
+                    recommendation["originalItem"],
+                    recommendation["originalCo2eKg"],
+                    recommendation["recommendedSwap"],
+                    recommendation["swapCo2eKg"],
+                    recommendation["potentialSavingsKg"],
+                )
+                for position, recommendation in enumerate(
+                    trip.get("ecoSwapRecommendations", [])
+                )
+            ],
+        )
         return trip_id
 
     def _hydrate_trip(
@@ -125,6 +161,16 @@ class HistoryStore:
             """
             SELECT item_id, name, item_co2e_kg
             FROM trip_items
+            WHERE trip_id = ?
+            ORDER BY position
+            """,
+            (row["id"],),
+        ).fetchall()
+        recommendations = connection.execute(
+            """
+            SELECT original_item, original_co2e_kg, recommended_swap,
+                   swap_co2e_kg, potential_savings_kg
+            FROM trip_recommendations
             WHERE trip_id = ?
             ORDER BY position
             """,
@@ -142,6 +188,18 @@ class HistoryStore:
                     "co2eKg": item["item_co2e_kg"],
                 }
                 for item in items
+            ],
+            "ecoSwapRecommendations": [
+                {
+                    "originalItem": recommendation["original_item"],
+                    "originalCo2eKg": recommendation["original_co2e_kg"],
+                    "recommendedSwap": recommendation["recommended_swap"],
+                    "swapCo2eKg": recommendation["swap_co2e_kg"],
+                    "potentialSavingsKg": recommendation[
+                        "potential_savings_kg"
+                    ],
+                }
+                for recommendation in recommendations
             ],
         }
 
@@ -170,11 +228,17 @@ class HistoryStore:
             "savedAt": saved["savedAt"],
             "totalCo2eKg": saved["totalCo2eKg"],
             "items": saved["items"],
+            "ecoSwapRecommendations": saved.get(
+                "ecoSwapRecommendations", []
+            ),
         } == {
             "source": imported["source"],
             "savedAt": saved_at,
             "totalCo2eKg": imported["totalCo2eKg"],
             "items": imported["items"],
+            "ecoSwapRecommendations": imported.get(
+                "ecoSwapRecommendations", []
+            ),
         }
 
     def create_trip(self, trip: dict) -> dict:

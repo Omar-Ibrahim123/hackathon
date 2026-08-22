@@ -73,7 +73,7 @@ export default function CameraCapture({
         className="camera-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Take a photo of your receipt"
+        aria-label="Take a photo of a receipt or grocery item"
       >
         {error ? (
           <p className="field-error" role="alert">{error}</p>

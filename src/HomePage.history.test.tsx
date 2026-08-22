@@ -9,10 +9,10 @@ afterEach(cleanup);
 
 async function calculateReceipt(user: ReturnType<typeof userEvent.setup>) {
   await user.upload(
-    screen.getByLabelText("Receipt image"),
+    screen.getByLabelText("Receipt or grocery item image"),
     new File(["receipt"], "receipt.jpg", { type: "image/jpeg" }),
   );
-  await user.click(screen.getByRole("button", { name: "Calculate receipt" }));
+  await user.click(screen.getByRole("button", { name: "Calculate footprint" }));
 }
 
 async function calculateOneManualItem(

@@ -3,9 +3,20 @@ export interface CarbonResultItem {
   name: string;
   co2eKg: number;
 }
+
+export interface EcoSwapRecommendation {
+  originalItem: string;
+  originalCo2eKg: number;
+  recommendedSwap: string;
+  swapCo2eKg: number;
+  potentialSavingsKg: number;
+}
+
 export interface CarbonResult {
   totalCo2eKg: number;
+  potentialTotalSavingsKg: number;
   items: CarbonResultItem[];
+  ecoSwapRecommendations: EcoSwapRecommendation[];
 }
 
 export type ApiMode = "mock" | "live";

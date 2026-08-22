@@ -17,9 +17,12 @@ describe("receipt calculation", () => {
     const file = new File(["receipt"], "receipt.jpg", {
       type: "image/jpeg",
     });
-    await user.upload(screen.getByLabelText("Receipt image"), file);
+    await user.upload(
+      screen.getByLabelText("Receipt or grocery item image"),
+      file,
+    );
     await user.click(
-      screen.getByRole("button", { name: "Calculate receipt" }),
+      screen.getByRole("button", { name: "Calculate footprint" }),
     );
 
     expect(
@@ -31,5 +34,9 @@ describe("receipt calculation", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Ground beef")).toBeInTheDocument();
     expect(screen.getByText("3.1 kg CO₂e")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Swap recommendations" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Ground beef → Lentils")).toBeInTheDocument();
   });
 });

@@ -469,6 +469,39 @@ h1 {
   border-radius: 22px;
 }
 
+.eco-swap-panel {
+  width: min(720px, 100%);
+  margin: 18px auto 0;
+  padding: clamp(20px, 4vw, 30px);
+  background: #f1f8ef;
+  border: 1px solid #c9ddc8;
+  border-radius: 18px;
+}
+
+.eco-swap-panel h2 {
+  margin: 4px 0 18px;
+  font-family: Georgia, serif;
+  font-weight: 500;
+}
+
+.eco-swap-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  list-style: none;
+}
+
+.eco-swap-list li {
+  padding: 14px 16px;
+  display: grid;
+  gap: 5px;
+  background: rgba(255, 255, 255, .72);
+  border-radius: 12px;
+}
+
+.eco-swap-list span { color: var(--muted); font-size: .86rem; }
+
 .save-actions { width: min(720px, 100%); margin: 18px auto 0; }
 .save-button { margin-top: 0; }
 .save-success { color: var(--green-dark); font-weight: 750; text-align: center; }
@@ -594,6 +627,8 @@ h1 {
 .insight-card span, .insight-card small { color: var(--muted); font-size: .78rem; }
 .insight-card strong { line-height: 1.35; }
 .insight-link:hover { border-color: #a9c4b1; }
+.swap-recommendation-card { grid-column: 1 / -1; background: #f1f8ef; border-color: #c9ddc8; }
+.swap-recommendation-card h2 { margin: 0; color: var(--green-dark); font-family: Georgia, serif; font-size: 1rem; font-weight: 600; }
 
 .visually-hidden {
   position: absolute;

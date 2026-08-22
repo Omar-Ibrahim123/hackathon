@@ -8,6 +8,15 @@ const newTrip: NewTrip = {
   source: "receipt",
   totalCo2eKg: 6.4,
   items: [{ id: "item-0", name: "Milk", co2eKg: 1.2 }],
+  ecoSwapRecommendations: [
+    {
+      originalItem: "Ground beef",
+      originalCo2eKg: 3.1,
+      recommendedSwap: "Lentils",
+      swapCo2eKg: 0.41,
+      potentialSavingsKg: 2.69,
+    },
+  ],
 };
 const savedTrip: SavedTrip = {
   ...newTrip,
@@ -126,6 +135,29 @@ describe("HttpTripRepository", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(jsonResponse([{ ...savedTrip, savedAt: "not-a-date" }])),
+    );
+
+    await expect(
+      new HttpTripRepository("https://api.example.test").listTrips(),
+    ).rejects.toBeInstanceOf(TripRepositoryError);
+  });
+
+  it("rejects malformed recommendation data", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse([
+          {
+            ...savedTrip,
+            ecoSwapRecommendations: [
+              {
+                ...savedTrip.ecoSwapRecommendations[0],
+                potentialSavingsKg: -1,
+              },
+            ],
+          },
+        ]),
+      ),
     );
 
     await expect(

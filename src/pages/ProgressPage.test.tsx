@@ -2,16 +2,23 @@ import { cleanup, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { SavedTrip } from "../history/types";
+import type { EcoSwapRecommendation } from "../types";
 import { MemoryTripRepository } from "../test/MemoryTripRepository";
 import { renderApp } from "../test/renderApp";
 
-function trip(id: string, day: number, total: number): SavedTrip {
+function trip(
+  id: string,
+  day: number,
+  total: number,
+  ecoSwapRecommendations: EcoSwapRecommendation[] = [],
+): SavedTrip {
   return {
     id,
     source: "receipt",
     savedAt: new Date(2026, 7, day, 12).toISOString(),
     totalCo2eKg: total,
     items: [],
+    ecoSwapRecommendations,
   };
 }
 
@@ -25,7 +32,15 @@ describe("ProgressPage", () => {
       trip("one", 2, 2),
       trip("two", 3, 3),
       trip("three", 4, 4),
-      trip("four", 5, 5),
+      trip("four", 5, 5, [
+        {
+          originalItem: "Ground beef",
+          originalCo2eKg: 9,
+          recommendedSwap: "Lentils",
+          swapCo2eKg: 1,
+          potentialSavingsKg: 8,
+        },
+      ]),
       trip("previous", 6, 10),
       trip("latest-highest", 7, 15),
     ];
@@ -46,6 +61,14 @@ describe("ProgressPage", () => {
       .toBeInTheDocument();
     expect(screen.getByRole("link", { name: /highest-impact upload/i }))
       .toHaveAttribute("href", "/history/latest-highest");
+    expect(
+      screen.getByRole("heading", { name: "Swap recommendation" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Ground beef → Lentils")).toBeInTheDocument();
+    expect(screen.getByText("Potential saving: 8 kg CO₂e"))
+      .toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /swap recommendation/i }))
+      .toHaveAttribute("href", "/history/four");
   });
 
   it("does not invent a percentage without a previous upload", async () => {

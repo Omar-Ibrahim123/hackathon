@@ -14,7 +14,7 @@ describe("grocery input method toggle", () => {
     const receiptTab = screen.getByRole("tab", { name: "Scan receipt" });
     const manualTab = screen.getByRole("tab", { name: "Enter manually" });
     const receiptHeading = screen.getByRole("heading", {
-      name: "Upload your grocery receipt",
+      name: "Upload a receipt or grocery item",
     });
     const manualHeading = screen.getByRole("heading", {
       name: "Add groceries yourself",
@@ -26,7 +26,7 @@ describe("grocery input method toggle", () => {
     expect(manualHeading).not.toBeVisible();
 
     await user.upload(
-      screen.getByLabelText("Receipt image"),
+      screen.getByLabelText("Receipt or grocery item image"),
       new File(["receipt"], "weekend-shop.jpg", { type: "image/jpeg" }),
     );
 
