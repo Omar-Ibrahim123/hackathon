@@ -103,4 +103,12 @@ export class LocalStorageTripRepository implements TripRepository {
   async deleteTrip(id: string): Promise<void> {
     this.write(this.read().filter((trip) => trip.id !== id));
   }
+
+  clearTrips(): void {
+    try {
+      this.storage.removeItem(STORAGE_KEY);
+    } catch {
+      throw new TripRepositoryError("Unable to clear migrated trip history.");
+    }
+  }
 }

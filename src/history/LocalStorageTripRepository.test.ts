@@ -72,4 +72,17 @@ describe("LocalStorageTripRepository", () => {
       "Unable to save trip history.",
     );
   });
+
+  it("clears only the saved-trip envelope after migration", async () => {
+    window.localStorage.setItem("greenercart.welcome-complete", "true");
+    const repository = new LocalStorageTripRepository(window.localStorage);
+    await repository.saveTrip(newTrip);
+
+    repository.clearTrips();
+
+    await expect(repository.listTrips()).resolves.toEqual([]);
+    expect(window.localStorage.getItem("greenercart.welcome-complete")).toBe(
+      "true",
+    );
+  });
 });
