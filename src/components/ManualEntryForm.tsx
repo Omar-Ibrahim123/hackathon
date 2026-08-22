@@ -5,11 +5,13 @@ import { validateManualItem } from "../validation";
 
 interface ManualEntryFormProps {
   disabled: boolean;
+  onClear: () => void;
   onSubmit: (items: ManualGroceryItem[]) => void;
 }
 
 export default function ManualEntryForm({
   disabled,
+  onClear,
   onSubmit,
 }: ManualEntryFormProps) {
   const [name, setName] = useState("");
@@ -55,6 +57,7 @@ export default function ManualEntryForm({
   function clearSearch() {
     resetDraft();
     setItems([]);
+    onClear();
   }
 
   return (

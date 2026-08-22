@@ -33,6 +33,12 @@ export default function App() {
     }
   }
 
+  function clearManualSearch() {
+    setResult(null);
+    setError(null);
+    setLastRequest(null);
+  }
+
   return (
     <div className="page-shell">
       <header className="site-header">
@@ -103,6 +109,7 @@ export default function App() {
             >
               <ManualEntryForm
                 disabled={isLoading}
+                onClear={clearManualSearch}
                 onSubmit={(items) =>
                   void runRequest(() => calculateManual(items))
                 }
