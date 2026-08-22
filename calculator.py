@@ -1,5 +1,10 @@
 import pandas as pd  # type: ignore[import-unresolved]
-from matcher import ReceiptMatcher
+from importlib import import_module
+from typing import Any
+
+# Load the local matcher module without requiring the editor to resolve it as a
+# separately installed package.
+ReceiptMatcher: Any = import_module("matcher").ReceiptMatcher
 
 def process_receipt_items(parsed_items: list, dataset_df: pd.DataFrame, matcher: ReceiptMatcher) -> dict:
     """
