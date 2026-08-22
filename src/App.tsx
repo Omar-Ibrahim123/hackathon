@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import { analyzeReceipt } from "./api";
+import { analyzeReceipt, calculateManual } from "./api";
+import ManualEntryForm from "./components/ManualEntryForm";
 import ReceiptInput from "./components/ReceiptInput";
 import ResultPanel from "./components/ResultPanel";
 import type { CarbonResult } from "./types";
@@ -54,6 +55,12 @@ export default function App() {
           <ReceiptInput
             disabled={isLoading}
             onSubmit={(file) => void runRequest(() => analyzeReceipt(file))}
+          />
+          <ManualEntryForm
+            disabled={isLoading}
+            onSubmit={(items) =>
+              void runRequest(() => calculateManual(items))
+            }
           />
         </div>
 
