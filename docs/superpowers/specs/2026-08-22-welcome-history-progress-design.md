@@ -11,7 +11,7 @@
 Extend the existing GreenerCart frontend with four connected capabilities:
 
 1. A one-time welcome page.
-2. A plain, searchable-history-style list of saved calculations.
+2. A plain chronological history list of saved calculations.
 3. Read-only details and deletion for a saved trip.
 4. Progress and insights derived from saved carbon results over time.
 
@@ -55,6 +55,12 @@ interface SavedTripItem {
   co2eKg: number;
 }
 
+interface NewTrip {
+  source: TripSource;
+  totalCo2eKg: number;
+  items: SavedTripItem[];
+}
+
 interface SavedTrip {
   id: string;
   source: TripSource;
@@ -64,7 +70,7 @@ interface SavedTrip {
 }
 ```
 
-`savedAt` is an ISO 8601 timestamp. IDs are generated in the frontend for the local implementation. Calculation responses are mapped into this model at the save boundary rather than expanding the existing backend response contract.
+`savedAt` is an ISO 8601 timestamp. Calculation responses are mapped to `NewTrip` at the save boundary rather than expanding the existing backend response contract. The persistence implementation assigns the canonical ID and timestamp and returns the resulting `SavedTrip`.
 
 ## 5. Persistence Boundary
 
@@ -74,14 +80,14 @@ Pages and calculation flows use an asynchronous repository contract:
 interface TripRepository {
   listTrips(): Promise<SavedTrip[]>;
   getTrip(id: string): Promise<SavedTrip | null>;
-  saveTrip(trip: SavedTrip): Promise<void>;
+  saveTrip(trip: NewTrip): Promise<SavedTrip>;
   deleteTrip(id: string): Promise<void>;
 }
 ```
 
-The initial `LocalStorageTripRepository` stores a versioned envelope in `localStorage`. Reads validate the envelope and every trip before returning data. Malformed or incompatible stored content produces a controlled repository error and never crashes a page.
+The initial `LocalStorageTripRepository` assigns the ID with `crypto.randomUUID()`, assigns `savedAt` using the current time, and stores the canonical trip in a versioned `localStorage` envelope. `saveTrip` returns that canonical `SavedTrip`. Reads validate the envelope and every trip before returning data. Malformed or incompatible stored content produces a controlled repository error and never crashes a page.
 
-A small repository factory supplies the active implementation. A future `HttpTripRepository` can implement the same operations and map the backend contract to `SavedTrip`. Page components, chart calculations, and navigation must not import or call `localStorage` directly.
+A small repository factory supplies the active implementation. A future `HttpTripRepository` can implement the same operations, let the backend assign database-generated IDs and timestamps, and map the response to `SavedTrip`. Page components, chart calculations, and navigation must not import or call `localStorage` directly.
 
 The welcome-complete flag is a separate small browser preference because it is not saved-trip domain data.
 
@@ -91,7 +97,7 @@ The welcome-complete flag is a separate small browser preference because it is n
 
 1. The existing receipt request runs through the current API module.
 2. On success, the result is displayed.
-3. The result is converted to a receipt `SavedTrip` and automatically persisted once.
+3. The result is converted to a receipt `NewTrip`, automatically persisted once, and replaced in save state by the canonical `SavedTrip` returned from the repository.
 4. The same rendered result cannot be inserted twice by rerendering or retry-state transitions.
 5. If persistence fails, the calculation remains visible and the page displays a specific history-save warning.
 
@@ -101,7 +107,7 @@ A newly submitted receipt is a new calculation and therefore a new trip. This sc
 
 1. The existing manual request runs through the current API module.
 2. On success, the result is displayed with **Save to history**.
-3. Selecting the action converts the result to a manual `SavedTrip` and persists it once.
+3. Selecting the action converts the result to a manual `NewTrip`, persists it once, and stores the canonical `SavedTrip` returned from the repository.
 4. The action becomes a disabled **Saved** state after success.
 5. A new manual calculation resets the saved state.
 6. A failed save leaves the action available and displays a specific error.
