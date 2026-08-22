@@ -6,22 +6,22 @@ import ProgressChart from "./ProgressChart";
 afterEach(cleanup);
 
 describe("ProgressChart", () => {
-  it("labels every monthly bar with its value", () => {
+  it("labels every upload bar with its date and value", () => {
     render(
       <ProgressChart
-        months={[
-          { key: "2026-07", label: "Jul", totalCo2eKg: 10 },
-          { key: "2026-08", label: "Aug", totalCo2eKg: 15 },
+        uploads={[
+          { id: "one", label: "Aug 20", totalCo2eKg: 10 },
+          { id: "two", label: "Aug 22", totalCo2eKg: 15 },
         ]}
       />,
     );
 
     expect(
-      screen.getByRole("img", { name: "Monthly carbon footprint" }),
+      screen.getByRole("img", { name: "Carbon footprint by upload" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Jul")).toBeInTheDocument();
+    expect(screen.getByText("Aug 20")).toBeInTheDocument();
     expect(screen.getByText("10 kg CO₂e")).toBeInTheDocument();
-    expect(screen.getByText("Aug")).toBeInTheDocument();
+    expect(screen.getByText("Aug 22")).toBeInTheDocument();
     expect(screen.getByText("15 kg CO₂e")).toBeInTheDocument();
   });
 });

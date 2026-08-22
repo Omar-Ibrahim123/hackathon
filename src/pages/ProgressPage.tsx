@@ -8,13 +8,13 @@ import { useTripRepository } from "../history/TripRepositoryContext";
 import type { SavedTrip } from "../history/types";
 
 function comparisonText(change: number | null): string {
-  if (change === null) return "Not enough previous-month data to compare";
+  if (change === null) return "Not enough previous-upload data to compare";
   const value = Math.abs(change).toLocaleString("en-CA", {
     maximumFractionDigits: 1,
   });
-  if (change > 0) return `${value}% increase from last month`;
-  if (change < 0) return `${value}% decrease from last month`;
-  return "No change from last month";
+  if (change > 0) return `${value}% increase from previous upload`;
+  if (change < 0) return `${value}% decrease from previous upload`;
+  return "No change from previous upload";
 }
 
 export default function ProgressPage() {
@@ -46,7 +46,7 @@ export default function ProgressPage() {
 
   return (
     <main className="app-main">
-      <p className="eyebrow">Six-month view</p>
+      <p className="eyebrow">Latest six uploads</p>
       <h1 data-route-heading tabIndex={-1}>Progress &amp; Insights</h1>
 
       {trips === null && error === null && (
@@ -62,26 +62,26 @@ export default function ProgressPage() {
       )}
       {summary && summary.tripCount > 0 && (
         <>
-          <section className="progress-panel" aria-labelledby="monthly-heading">
-            <h2 id="monthly-heading">Monthly footprint</h2>
-            <ProgressChart months={summary.months} />
+          <section className="progress-panel" aria-labelledby="uploads-heading">
+            <h2 id="uploads-heading">Recent uploads</h2>
+            <ProgressChart uploads={summary.uploads} />
           </section>
           <section className="insights-grid" aria-label="Carbon insights">
             <article className="insight-card">
-              <span>Month over month</span>
-              <strong>{comparisonText(summary.currentMonthChangePercent)}</strong>
+              <span>Latest upload change</span>
+              <strong>{comparisonText(summary.latestUploadChangePercent)}</strong>
             </article>
             <article className="insight-card">
-              <span>Average trip</span>
-              <strong>{formatEmissions(summary.averageTripCo2eKg ?? 0)} per trip</strong>
+              <span>Average upload</span>
+              <strong>{formatEmissions(summary.averageTripCo2eKg ?? 0)} per upload</strong>
             </article>
             {summary.highestImpactTrip && (
               <Link
                 className="insight-card insight-link"
                 to={`/history/${summary.highestImpactTrip.id}`}
-                aria-label={`Highest-impact trip, ${formatEmissions(summary.highestImpactTrip.totalCo2eKg)}`}
+                aria-label={`Highest-impact upload, ${formatEmissions(summary.highestImpactTrip.totalCo2eKg)}`}
               >
-                <span>Highest-impact trip</span>
+                <span>Highest-impact upload</span>
                 <strong>{formatEmissions(summary.highestImpactTrip.totalCo2eKg)}</strong>
                 <small>{formatSavedAt(summary.highestImpactTrip.savedAt)}</small>
               </Link>

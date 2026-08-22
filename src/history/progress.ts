@@ -1,49 +1,38 @@
 import type { SavedTrip } from "./types";
 
-export interface ProgressMonth {
-  key: string;
+export interface ProgressUpload {
+  id: string;
   label: string;
   totalCo2eKg: number;
 }
 
 export interface ProgressSummary {
-  months: ProgressMonth[];
+  uploads: ProgressUpload[];
   tripCount: number;
-  currentMonthChangePercent: number | null;
+  latestUploadChangePercent: number | null;
   averageTripCo2eKg: number | null;
   highestImpactTrip: SavedTrip | null;
 }
 
-function monthKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-export function buildProgressSummary(
-  trips: SavedTrip[],
-  now = new Date(),
-): ProgressSummary {
-  const months = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    return {
-      key: monthKey(date),
-      label: date.toLocaleDateString("en-CA", { month: "short" }),
-      totalCo2eKg: 0,
-    };
-  });
-  const monthByKey = new Map(months.map((month) => [month.key, month]));
-  const tripsInWindow = trips.filter((trip) => {
-    const month = monthByKey.get(monthKey(new Date(trip.savedAt)));
-    if (!month) return false;
-    month.totalCo2eKg += trip.totalCo2eKg;
-    return true;
-  });
-  const previous = months[4].totalCo2eKg;
-  const current = months[5].totalCo2eKg;
-  const total = tripsInWindow.reduce(
+export function buildProgressSummary(trips: SavedTrip[]): ProgressSummary {
+  const recentTrips = [...trips]
+    .sort((a, b) => Date.parse(a.savedAt) - Date.parse(b.savedAt))
+    .slice(-6);
+  const uploads = recentTrips.map((trip) => ({
+    id: trip.id,
+    label: new Date(trip.savedAt).toLocaleDateString("en-CA", {
+      month: "short",
+      day: "numeric",
+    }),
+    totalCo2eKg: trip.totalCo2eKg,
+  }));
+  const previous = recentTrips.at(-2)?.totalCo2eKg;
+  const current = recentTrips.at(-1)?.totalCo2eKg;
+  const total = recentTrips.reduce(
     (sum, trip) => sum + trip.totalCo2eKg,
     0,
   );
-  const highestImpactTrip = tripsInWindow.reduce<SavedTrip | null>(
+  const highestImpactTrip = recentTrips.reduce<SavedTrip | null>(
     (highest, trip) => {
       if (highest === null || trip.totalCo2eKg > highest.totalCo2eKg) {
         return trip;
@@ -60,12 +49,14 @@ export function buildProgressSummary(
   );
 
   return {
-    months,
-    tripCount: tripsInWindow.length,
-    currentMonthChangePercent:
-      previous > 0 ? ((current - previous) / previous) * 100 : null,
+    uploads,
+    tripCount: recentTrips.length,
+    latestUploadChangePercent:
+      previous !== undefined && previous > 0 && current !== undefined
+        ? ((current - previous) / previous) * 100
+        : null,
     averageTripCo2eKg:
-      tripsInWindow.length > 0 ? total / tripsInWindow.length : null,
+      recentTrips.length > 0 ? total / recentTrips.length : null,
     highestImpactTrip,
   };
 }

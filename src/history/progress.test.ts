@@ -8,51 +8,57 @@ function trip(id: string, savedAt: string, totalCo2eKg: number): SavedTrip {
 }
 
 describe("buildProgressSummary", () => {
-  it("builds oldest-to-current local calendar month totals", () => {
-    const summary = buildProgressSummary(
-      [
-        trip("march", "2026-03-10T12:00:00", 2),
-        trip("july-a", "2026-07-03T12:00:00", 4),
-        trip("july-b", "2026-07-20T12:00:00", 6),
-        trip("august", "2026-08-02T12:00:00", 15),
-        trip("old", "2026-02-10T12:00:00", 100),
-      ],
-      new Date("2026-08-22T12:00:00"),
-    );
-
-    expect(summary.months.map((month) => month.totalCo2eKg)).toEqual([
-      2, 0, 0, 0, 10, 15,
+  it("returns the six most recent uploads in chronological order", () => {
+    const summary = buildProgressSummary([
+      trip("upload-4", "2026-08-04T12:00:00Z", 4),
+      trip("upload-7", "2026-08-07T12:00:00Z", 14),
+      trip("upload-2", "2026-08-02T12:00:00Z", 2),
+      trip("upload-6", "2026-08-06T12:00:00Z", 7),
+      trip("upload-1", "2026-08-01T12:00:00Z", 100),
+      trip("upload-5", "2026-08-05T12:00:00Z", 5),
+      trip("upload-3", "2026-08-03T12:00:00Z", 3),
     ]);
-    expect(summary.currentMonthChangePercent).toBe(50);
-    expect(summary.averageTripCo2eKg).toBeCloseTo(6.75);
-    expect(summary.highestImpactTrip?.id).toBe("august");
+
+    expect(summary.uploads.map((upload) => upload.id)).toEqual([
+      "upload-2",
+      "upload-3",
+      "upload-4",
+      "upload-5",
+      "upload-6",
+      "upload-7",
+    ]);
+    expect(summary.latestUploadChangePercent).toBe(100);
+    expect(summary.averageTripCo2eKg).toBeCloseTo(35 / 6);
+    expect(summary.highestImpactTrip?.id).toBe("upload-7");
   });
 
-  it("omits percentage change when the previous month is zero", () => {
-    const summary = buildProgressSummary(
-      [trip("august", "2026-08-02T12:00:00", 5)],
-      new Date("2026-08-22T12:00:00"),
-    );
-
-    expect(summary.currentMonthChangePercent).toBeNull();
+  it("omits percentage change when there is no comparable previous upload", () => {
+    expect(
+      buildProgressSummary([trip("only", "2026-08-02T12:00:00Z", 5)])
+        .latestUploadChangePercent,
+    ).toBeNull();
+    expect(
+      buildProgressSummary([
+        trip("zero", "2026-08-01T12:00:00Z", 0),
+        trip("latest", "2026-08-02T12:00:00Z", 5),
+      ]).latestUploadChangePercent,
+    ).toBeNull();
   });
 
-  it("returns empty insights when the window contains no trips", () => {
-    const summary = buildProgressSummary([], new Date("2026-08-22T12:00:00"));
+  it("returns empty insights when there are no uploads", () => {
+    const summary = buildProgressSummary([]);
 
+    expect(summary.uploads).toEqual([]);
     expect(summary.tripCount).toBe(0);
     expect(summary.averageTripCo2eKg).toBeNull();
     expect(summary.highestImpactTrip).toBeNull();
   });
 
-  it("uses the newest trip when highest-impact totals tie", () => {
-    const summary = buildProgressSummary(
-      [
-        trip("older", "2026-08-02T12:00:00", 5),
-        trip("newer", "2026-08-12T12:00:00", 5),
-      ],
-      new Date("2026-08-22T12:00:00"),
-    );
+  it("uses the newest upload when highest-impact totals tie", () => {
+    const summary = buildProgressSummary([
+      trip("older", "2026-08-02T12:00:00Z", 5),
+      trip("newer", "2026-08-12T12:00:00Z", 5),
+    ]);
 
     expect(summary.highestImpactTrip?.id).toBe("newer");
   });

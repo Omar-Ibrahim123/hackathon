@@ -90,7 +90,7 @@ Manual grocery calculations work without external API keys for locally matched i
 ## Frontend History and Progress
 
 The frontend includes one-time welcome onboarding, saved-trip History,
-read-only Trip Details, and six-month Progress & Insights.
+read-only Trip Details, and Progress & Insights across the six most recent uploads.
 
 - Successful receipt calculations save automatically.
 - Manual results enter History only after **Save to history** is selected.

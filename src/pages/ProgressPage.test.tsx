@@ -5,21 +5,11 @@ import type { SavedTrip } from "../history/types";
 import { MemoryTripRepository } from "../test/MemoryTripRepository";
 import { renderApp } from "../test/renderApp";
 
-function dateForOffset(monthOffset: number, day: number): string {
-  const now = new Date();
-  return new Date(
-    now.getFullYear(),
-    now.getMonth() + monthOffset,
-    day,
-    12,
-  ).toISOString();
-}
-
-function trip(id: string, monthOffset: number, day: number, total: number): SavedTrip {
+function trip(id: string, day: number, total: number): SavedTrip {
   return {
     id,
     source: "receipt",
-    savedAt: dateForOffset(monthOffset, day),
+    savedAt: new Date(2026, 7, day, 12).toISOString(),
     totalCo2eKg: total,
     items: [],
   };
@@ -29,12 +19,15 @@ describe("ProgressPage", () => {
   beforeEach(() => window.localStorage.clear());
   afterEach(cleanup);
 
-  it("shows six-month insights from saved trips", async () => {
+  it("shows insights based on the six most recent uploads", async () => {
     const trips = [
-      trip("previous-a", -1, 3, 4),
-      trip("previous-b", -1, 20, 6),
-      trip("highest", 0, 2, 15),
-      trip("oldest", -5, 10, 2),
+      trip("excluded", 1, 100),
+      trip("one", 2, 2),
+      trip("two", 3, 3),
+      trip("three", 4, 4),
+      trip("four", 5, 5),
+      trip("previous", 6, 10),
+      trip("latest-highest", 7, 15),
     ];
     renderApp({
       route: "/progress",
@@ -43,22 +36,24 @@ describe("ProgressPage", () => {
     });
 
     expect(
-      await screen.findByText("50% increase from last month"),
+      await screen.findByText("50% increase from previous upload"),
     ).toBeInTheDocument();
-    expect(screen.getByText("6.75 kg CO₂e per trip")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /highest-impact trip/i }))
-      .toHaveAttribute("href", "/history/highest");
+    expect(screen.getByText("6.5 kg CO₂e per upload")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Recent uploads" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /highest-impact upload/i }))
+      .toHaveAttribute("href", "/history/latest-highest");
   });
 
-  it("does not invent a percentage when the previous month is zero", async () => {
+  it("does not invent a percentage without a previous upload", async () => {
     renderApp({
       route: "/progress",
-      repository: new MemoryTripRepository([trip("current", 0, 2, 5)]),
+      repository: new MemoryTripRepository([trip("only", 2, 5)]),
       welcomeComplete: true,
     });
 
     expect(
-      await screen.findByText("Not enough previous-month data to compare"),
+      await screen.findByText("Not enough previous-upload data to compare"),
     ).toBeInTheDocument();
   });
 
