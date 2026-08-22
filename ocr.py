@@ -71,7 +71,6 @@ def extract_items_from_receipt(image_bytes: bytes, content_type: str = "image/jp
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=RECEIPT_ITEMS_SCHEMA,
-                temperature=0.1,
             ),
         )
 

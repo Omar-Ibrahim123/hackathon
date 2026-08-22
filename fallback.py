@@ -71,7 +71,6 @@ def estimate_unmatched_item(raw_item_string: str) -> dict:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=CARBON_ESTIMATE_SCHEMA,
-                temperature=0.2,
             ),
         )
 

@@ -51,41 +51,60 @@ class ReceiptMatcher:
         text = _WHITESPACE_PATTERN.sub(" ", text).strip()
         return text
 
-    def _score(self, normalized: str, candidate: str) -> float:
+    # Below this raw character-similarity ratio, a match is only trusted if
+    # it's also backed by whole-word evidence (see _score). Short, generic
+    # strings like "PAPER TOWELS" and "POTATOES" can otherwise share enough
+    # letters to clear match_threshold on character overlap alone despite
+    # being unrelated products.
+    _STRONG_RATIO_THRESHOLD = 0.75
+
+    def _score(self, normalized: str, candidate: str) -> tuple:
         ratio = difflib.SequenceMatcher(None, normalized, candidate).ratio()
 
         # Word-overlap F1 rewards abbreviations ("CHKN BRST" vs. "CHICKEN
         # BREAST") that SequenceMatcher alone underscores, while an F1 (not
         # plain containment) keeps a single generic shared word like "MILK"
         # from outscoring a more specific multi-word candidate.
+        has_word_overlap = False
         candidate_words = candidate.split()
         text_words = normalized.split()
         if candidate_words and text_words:
             text_word_set = set(text_words)
             overlap = sum(1 for w in candidate_words if w in text_word_set)
             if overlap:
+                has_word_overlap = True
                 recall = overlap / len(candidate_words)
                 precision = overlap / len(text_word_set)
                 f1 = 2 * precision * recall / (precision + recall)
                 ratio = max(ratio, f1)
 
-        return ratio
+        return ratio, has_word_overlap
 
     def match_item(self, raw_item: str) -> dict:
         normalized = self.normalize(raw_item)
         best_score = 0.0
         best: Optional[dict] = None
+        best_has_word_overlap = False
 
         for item in self.items:
             candidates = [item["item_name"].upper()] + item["keywords"]
-            score = max(self._score(normalized, c) for c in candidates)
-            if score > best_score:
-                best_score = score
+            item_score, item_has_word_overlap = max(
+                (self._score(normalized, c) for c in candidates),
+                key=lambda pair: pair[0],
+            )
+            if item_score > best_score:
+                best_score = item_score
                 best = item
+                best_has_word_overlap = item_has_word_overlap
 
         confidence = round(best_score, 2)
 
-        if best is None or best_score < self.match_threshold:
+        # Accept only if there's real token/keyword evidence behind the
+        # match, or the raw similarity is strong enough to stand on its own
+        # (e.g. a typo/pluralization of an otherwise unmatched word).
+        is_reliable_match = best_has_word_overlap or best_score >= self._STRONG_RATIO_THRESHOLD
+
+        if best is None or best_score < self.match_threshold or not is_reliable_match:
             return {
                 "status": "UNMATCHED",
                 "matched_item": None,
@@ -112,5 +131,14 @@ class ReceiptMatcher:
 # --- Example Usage ---
 if __name__ == "__main__":
     matcher = ReceiptMatcher("emission_factors.csv")
-    for sample in ["BNDL GROUND BEEF 1LB", "OATLY BARISTA OAT MILK", "UNKNOWN DRAGONFRUIT SNACK"]:
+    for sample in [
+        "BNDL GROUND BEEF 1LB",
+        "OATLY BARISTA OAT MILK",
+        "UNKNOWN DRAGONFRUIT SNACK",
+        # Negative cases: unrelated products that share enough letters to
+        # inflate character-similarity ratio but have no real word/keyword
+        # overlap, and must stay UNMATCHED.
+        "PAPER TOWELS",
+        "DISH SOAP",
+    ]:
         print(sample, "->", matcher.match_item(sample))
