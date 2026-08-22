@@ -23,6 +23,7 @@ Receipt photos are turned into structured line items by `ocr.py`, which uses Gem
 - Receipt-level carbon calculations with total footprint, per-item breakdown, and confidence scores.
 - Eco-swap recommendations ranked by potential carbon savings.
 - FastAPI backend (`main.py`) with `/api/receipts/scan` (image upload) and `/api/receipts/analyze` (pre-parsed items) endpoints, CORS-enabled for a separate frontend/mobile client.
+- SQLite-backed trip history with canonical IDs, durable migrated browser IDs, and REST endpoints for save, list, details, import, and delete.
 - Streamlit interface (`app.py`) with receipt image upload, summary metrics, a receipt breakdown table, and a footprint-by-category chart.
 
 ## Setup
@@ -49,6 +50,13 @@ uvicorn main:app --reload
 - `GET /health` — liveness check.
 - `POST /api/receipts/scan` — multipart image upload (`file`), runs OCR + full carbon analysis.
 - `POST /api/receipts/analyze` — JSON body `{"items": [{"raw_item": "...", "qty": 1}]}`, skips OCR.
+- `GET /api/trips` — complete saved-trip history, newest first.
+- `GET /api/trips/{id}` — one trip by canonical or migrated browser ID.
+- `POST /api/trips` — saves a new normalized trip and returns its canonical ID and timestamp.
+- `POST /api/trips/import` — atomically migrates browser trips while preserving timestamps.
+- `DELETE /api/trips/{id}` — deletes by canonical or migrated browser ID.
+
+Live history uses `data/history.db` by default. Set `HISTORY_DB_PATH` to use a different SQLite file.
 
 ## Run the Streamlit Demo
 
@@ -94,9 +102,28 @@ read-only Trip Details, and Progress & Insights across the six most recent uploa
 
 - Successful receipt calculations save automatically.
 - Manual results enter History only after **Save to history** is selected.
-- Saved trips currently remain in the same browser through `localStorage`.
-- Clearing site data removes local History and Progress data.
+- Mock mode stores History and Progress in the current browser through `localStorage`.
+- Live mode stores History and Progress data in SQLite through the Trips API.
+- On first live-mode history access, valid browser trips migrate atomically to SQLite and retain their original timestamps.
+- Migrated `/history/{id}` links and bookmarks continue to work through a durable backend alias.
+- Browser history is removed only after the backend confirms the complete migration.
 
 Pages access saved trips through the asynchronous `TripRepository` contract.
-When backend history endpoints are available, an HTTP repository can replace
-the local adapter without rewriting the pages or progress calculations.
+The application selects the local adapter in mock mode and the migration-aware
+HTTP adapter in live mode without changing the pages or progress calculations.
+
+## Run Tests
+
+Install test dependencies once:
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt
+```
+
+Run backend tests, frontend tests, and the production build:
+
+```bash
+.venv/bin/python -m pytest tests -v
+npm test
+npm run build
+```
