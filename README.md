@@ -86,3 +86,17 @@ VITE_API_MODE=live VITE_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
 Manual grocery calculations work without external API keys for locally matched items. Receipt photo scanning requires `GEMINI_API_KEY`; without it, the API returns a service-unavailable error that the frontend displays without substituting mock data.
+
+## Frontend History and Progress
+
+The frontend includes one-time welcome onboarding, saved-trip History,
+read-only Trip Details, and six-month Progress & Insights.
+
+- Successful receipt calculations save automatically.
+- Manual results enter History only after **Save to history** is selected.
+- Saved trips currently remain in the same browser through `localStorage`.
+- Clearing site data removes local History and Progress data.
+
+Pages access saved trips through the asynchronous `TripRepository` contract.
+When backend history endpoints are available, an HTTP repository can replace
+the local adapter without rewriting the pages or progress calculations.
