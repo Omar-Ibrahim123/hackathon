@@ -7,6 +7,13 @@ import history
 from history import HistoryStore
 
 
+RECOMMENDATION = {
+    "originalItem": "Ground Beef",
+    "originalCo2eKg": 10.0,
+    "recommendedSwap": "Lentils",
+    "swapCo2eKg": 0.41,
+    "potentialSavingsKg": 9.59,
+}
 NEW_TRIP = {
     "source": "receipt",
     "totalCo2eKg": 6.4,
@@ -14,6 +21,7 @@ NEW_TRIP = {
         {"id": "item-0", "name": "Milk", "co2eKg": 1.2},
         {"id": "item-1", "name": "Beans", "co2eKg": 0.4},
     ],
+    "ecoSwapRecommendations": [RECOMMENDATION],
 }
 
 
@@ -74,7 +82,65 @@ def test_delete_cascades_to_trip_items(tmp_path):
 
     with sqlite3.connect(database_path) as connection:
         item_count = connection.execute("SELECT COUNT(*) FROM trip_items").fetchone()[0]
+        recommendation_count = connection.execute(
+            "SELECT COUNT(*) FROM trip_recommendations"
+        ).fetchone()[0]
     assert item_count == 0
+    assert recommendation_count == 0
+
+
+def test_preserves_recommendation_order_across_restart(tmp_path):
+    database_path = str(tmp_path / "history.db")
+    trip = {
+        **NEW_TRIP,
+        "ecoSwapRecommendations": [
+            RECOMMENDATION,
+            {
+                "originalItem": "Cheddar Cheese",
+                "originalCo2eKg": 4.0,
+                "recommendedSwap": "Plant-Based Cheese",
+                "swapCo2eKg": 1.0,
+                "potentialSavingsKg": 3.0,
+            },
+        ],
+    }
+
+    saved = HistoryStore(database_path).create_trip(trip)
+    reopened = HistoryStore(database_path).get_trip(saved["id"])
+
+    assert reopened["ecoSwapRecommendations"] == trip[
+        "ecoSwapRecommendations"
+    ]
+
+
+def test_existing_database_trips_hydrate_with_empty_recommendations(tmp_path):
+    database_path = tmp_path / "history.db"
+    with sqlite3.connect(database_path) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE trips (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                import_key TEXT UNIQUE,
+                source TEXT NOT NULL,
+                saved_at TEXT NOT NULL,
+                total_co2e_kg REAL NOT NULL
+            );
+            CREATE TABLE trip_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                trip_id INTEGER NOT NULL,
+                item_id TEXT NOT NULL,
+                position INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                item_co2e_kg REAL NOT NULL
+            );
+            INSERT INTO trips (source, saved_at, total_co2e_kg)
+            VALUES ('receipt', '2026-08-22T14:30:00+00:00', 1.0);
+            """
+        )
+
+    trip = HistoryStore(str(database_path)).get_trip("trip_1")
+
+    assert trip["ecoSwapRecommendations"] == []
 
 
 def imported_trip(local_id="147ba6a4-eefd-4dce-99a1-17d31ff7291c"):
@@ -110,6 +176,21 @@ def test_import_rejects_changed_data_for_an_existing_local_id(tmp_path):
         store.import_trips([{**original, "totalCo2eKg": 99.0}])
 
     assert store.get_trip(original["id"])["totalCo2eKg"] == 6.4
+
+
+def test_import_rejects_changed_recommendations_for_existing_local_id(tmp_path):
+    store = HistoryStore(str(tmp_path / "history.db"))
+    original = imported_trip()
+    store.import_trips([original])
+    changed = {
+        **original,
+        "ecoSwapRecommendations": [
+            {**RECOMMENDATION, "recommendedSwap": "Chickpeas"}
+        ],
+    }
+
+    with pytest.raises(history.HistoryConflictError):
+        store.import_trips([changed])
 
 
 def test_import_rolls_back_the_whole_batch_on_conflict(tmp_path):

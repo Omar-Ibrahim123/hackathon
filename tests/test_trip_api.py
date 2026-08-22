@@ -70,6 +70,7 @@ def test_trip_crud_contract(client):
     assert saved["id"] == "trip_1"
     assert saved["source"] == "receipt"
     assert saved["items"] == NEW_TRIP["items"]
+    assert saved["ecoSwapRecommendations"] == [RECOMMENDATION]
     assert client.get("/api/trips").json() == [saved]
     assert client.get(f"/api/trips/{saved['id']}").json() == saved
     assert client.delete(f"/api/trips/{saved['id']}").status_code == 204
