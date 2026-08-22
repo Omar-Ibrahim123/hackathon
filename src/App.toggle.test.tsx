@@ -2,14 +2,14 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
-import App from "./App";
+import HomePage from "./pages/HomePage";
 
 afterEach(cleanup);
 
 describe("grocery input method toggle", () => {
   it("defaults to receipt scanning and preserves both forms while switching", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<HomePage />);
 
     const receiptTab = screen.getByRole("tab", { name: "Scan receipt" });
     const manualTab = screen.getByRole("tab", { name: "Enter manually" });

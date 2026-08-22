@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import App from "./App";
+import HomePage from "./pages/HomePage";
 
 afterEach(() => {
   cleanup();
@@ -12,7 +12,7 @@ afterEach(() => {
 describe("receipt calculation", () => {
   it("shows loading and renders the deterministic receipt result", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<HomePage />);
 
     const file = new File(["receipt"], "receipt.jpg", {
       type: "image/jpeg",
