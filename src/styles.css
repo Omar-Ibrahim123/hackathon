@@ -298,6 +298,30 @@ h1 {
 .secondary-button:hover { background: #f1f8f2; }
 .secondary-button:disabled { cursor: not-allowed; opacity: .6; }
 
+.manual-actions {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.manual-actions .secondary-button { margin-top: 0; }
+
+.clear-button {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.clear-button:hover { color: var(--ink); background: #f5f7f3; }
+.clear-button:disabled { cursor: not-allowed; opacity: .55; }
+
 .manual-review { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
 
 .review-heading {

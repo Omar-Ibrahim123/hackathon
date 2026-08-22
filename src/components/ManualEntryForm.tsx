@@ -17,6 +17,8 @@ export default function ManualEntryForm({
   const [quantity, setQuantity] = useState("");
   const [items, setItems] = useState<ManualGroceryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const isManualSearchEmpty =
+    !name && !price && !quantity && items.length === 0 && !error;
 
   function resetDraft() {
     setName("");
@@ -48,6 +50,11 @@ export default function ManualEntryForm({
     setItems((currentItems) =>
       currentItems.filter((currentItem) => currentItem.id !== id),
     );
+  }
+
+  function clearSearch() {
+    resetDraft();
+    setItems([]);
   }
 
   return (
@@ -107,15 +114,25 @@ export default function ManualEntryForm({
         </p>
       ) : null}
 
-      <button
-        type="button"
-        className="secondary-button"
-        disabled={disabled}
-        onClick={addItem}
-      >
-        Add item
-        <span aria-hidden="true">+</span>
-      </button>
+      <div className="manual-actions">
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={disabled}
+          onClick={addItem}
+        >
+          Add item
+          <span aria-hidden="true">+</span>
+        </button>
+        <button
+          type="button"
+          className="clear-button"
+          disabled={disabled || isManualSearchEmpty}
+          onClick={clearSearch}
+        >
+          Clear search
+        </button>
+      </div>
 
       {items.length > 0 ? (
         <div className="manual-review">

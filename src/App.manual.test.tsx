@@ -7,6 +7,37 @@ import App from "./App";
 afterEach(cleanup);
 
 describe("manual grocery calculation", () => {
+  it("clears the draft, validation error, and every added product", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("tab", { name: "Enter manually" }));
+
+    const clearButton = screen.getByRole("button", { name: "Clear search" });
+    expect(clearButton).toBeDisabled();
+
+    await user.type(screen.getByLabelText("Product name"), "Granola bars");
+    await user.type(screen.getByLabelText("Price (CAD)"), "5");
+    await user.type(screen.getByLabelText("Quantity"), "1");
+    await user.click(screen.getByRole("button", { name: "Add item" }));
+
+    await user.type(screen.getByLabelText("Product name"), "Apples");
+    await user.type(screen.getByLabelText("Price (CAD)"), "4.50");
+    await user.type(screen.getByLabelText("Quantity"), "0");
+    await user.click(screen.getByRole("button", { name: "Add item" }));
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    await user.click(clearButton);
+
+    expect(screen.getByLabelText("Product name")).toHaveValue("");
+    expect(screen.getByLabelText("Price (CAD)")).toHaveValue(null);
+    expect(screen.getByLabelText("Quantity")).toHaveValue(null);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText("Granola bars")).not.toBeInTheDocument();
+    expect(screen.queryByText("Your groceries")).not.toBeInTheDocument();
+    expect(clearButton).toBeDisabled();
+  });
+
   it("builds a product list without type or category controls", async () => {
     const user = userEvent.setup();
     render(<App />);
