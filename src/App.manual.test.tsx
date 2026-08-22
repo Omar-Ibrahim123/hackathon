@@ -11,6 +11,8 @@ describe("manual grocery calculation", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await user.click(screen.getByRole("tab", { name: "Enter manually" }));
+
     await user.type(screen.getByLabelText("Product name"), "Granola bars");
     await user.selectOptions(
       screen.getByLabelText("Grocery category"),

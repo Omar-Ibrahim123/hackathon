@@ -7,8 +7,10 @@ import ResultPanel from "./components/ResultPanel";
 import type { CarbonResult } from "./types";
 
 type Request = () => Promise<CarbonResult>;
+type InputMode = "receipt" | "manual";
 
 export default function App() {
+  const [inputMode, setInputMode] = useState<InputMode>("receipt");
   const [result, setResult] = useState<CarbonResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,17 +53,62 @@ export default function App() {
           </p>
         </section>
 
-        <div className="input-grid">
-          <ReceiptInput
-            disabled={isLoading}
-            onSubmit={(file) => void runRequest(() => analyzeReceipt(file))}
-          />
-          <ManualEntryForm
-            disabled={isLoading}
-            onSubmit={(items) =>
-              void runRequest(() => calculateManual(items))
-            }
-          />
+        <div className="input-method-shell">
+          <div
+            className="input-method-switcher"
+            role="tablist"
+            aria-label="Grocery input method"
+          >
+            <button
+              id="receipt-input-tab"
+              type="button"
+              role="tab"
+              aria-controls="receipt-input-panel"
+              aria-selected={inputMode === "receipt"}
+              disabled={isLoading}
+              onClick={() => setInputMode("receipt")}
+            >
+              Scan receipt
+            </button>
+            <button
+              id="manual-input-tab"
+              type="button"
+              role="tab"
+              aria-controls="manual-input-panel"
+              aria-selected={inputMode === "manual"}
+              disabled={isLoading}
+              onClick={() => setInputMode("manual")}
+            >
+              Enter manually
+            </button>
+          </div>
+
+          <div className="input-stage">
+            <div
+              id="receipt-input-panel"
+              role="tabpanel"
+              aria-labelledby="receipt-input-tab"
+              hidden={inputMode !== "receipt"}
+            >
+              <ReceiptInput
+                disabled={isLoading}
+                onSubmit={(file) => void runRequest(() => analyzeReceipt(file))}
+              />
+            </div>
+            <div
+              id="manual-input-panel"
+              role="tabpanel"
+              aria-labelledby="manual-input-tab"
+              hidden={inputMode !== "manual"}
+            >
+              <ManualEntryForm
+                disabled={isLoading}
+                onSubmit={(items) =>
+                  void runRequest(() => calculateManual(items))
+                }
+              />
+            </div>
+          </div>
         </div>
 
         {isLoading && (
