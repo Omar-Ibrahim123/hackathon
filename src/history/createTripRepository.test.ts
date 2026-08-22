@@ -16,13 +16,35 @@ describe("createTripRepository", () => {
     ).toBeInstanceOf(LocalStorageTripRepository);
   });
 
-  it("uses migration-aware backend history in live mode", () => {
+  it("keeps history in local storage by default in live mode", () => {
     expect(
       createTripRepository({
         mode: "live",
+        history: "local",
+        baseUrl: "https://api.example.test",
+        storage: window.localStorage,
+      }),
+    ).toBeInstanceOf(LocalStorageTripRepository);
+  });
+
+  it("uses migration-aware backend history when opted in", () => {
+    expect(
+      createTripRepository({
+        mode: "live",
+        history: "backend",
         baseUrl: "https://api.example.test",
         storage: window.localStorage,
       }),
     ).toBeInstanceOf(MigratingTripRepository);
+  });
+
+  it("ignores backend history opt-in while in mock mode", () => {
+    expect(
+      createTripRepository({
+        mode: "mock",
+        history: "backend",
+        storage: window.localStorage,
+      }),
+    ).toBeInstanceOf(LocalStorageTripRepository);
   });
 });

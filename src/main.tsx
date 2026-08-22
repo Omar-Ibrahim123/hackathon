@@ -3,13 +3,14 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
-import { apiBaseUrl, apiMode } from "./apiConfig";
+import { apiBaseUrl, apiMode, historyStorage } from "./apiConfig";
 import { createTripRepository } from "./history/createTripRepository";
 import { TripRepositoryProvider } from "./history/TripRepositoryContext";
 import "./styles.css";
 
 const repository = createTripRepository({
   mode: apiMode,
+  history: historyStorage,
   baseUrl: apiBaseUrl,
   storage: window.localStorage,
 });

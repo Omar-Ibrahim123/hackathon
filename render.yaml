@@ -1,17 +1,25 @@
 services:
+  # FastAPI backend (history database, receipt analysis)
   - type: web
     name: ecoreceipt-api
     runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      # Optional — enables receipt-photo scanning. Leave unset to skip.
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Optional — Climatiq lookups for unmatched items.
       - key: CLIMATIQ_API_KEY
         sync: false
 
+  # React frontend (the site you open in the browser)
   - type: web
-    name: ecoreceipt-frontend
+    name: ecoreceipt
     runtime: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
@@ -20,8 +28,10 @@ services:
         value: "false"
       - key: VITE_API_MODE
         value: live
+      # Must match the ecoreceipt-api service URL. If Render gives the API
+      # a different URL (name already taken), update this and redeploy.
       - key: VITE_API_BASE_URL
-        sync: false # set to the ecoreceipt-api service URL, e.g. https://ecoreceipt-api.onrender.com
+        value: https://ecoreceipt-api.onrender.com
     routes:
       - type: rewrite
         source: /*
