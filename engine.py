@@ -3,7 +3,7 @@ import os
 import pandas as pd  # type: ignore[import-unresolved]
 
 from api_client import ClimatiqAPIClient
-from calculator import process_receipt_items
+from calculator import build_eco_swap_recommendations, process_receipt_items
 from fallback import estimate_unmatched_item
 from matcher import ReceiptMatcher, is_boilerplate_line
 from ocr import OcrFailedError, OcrUnavailableError, extract_items_from_receipt
@@ -71,6 +71,17 @@ class CarbonEngine:
 
         result["summary"]["total_co2e_kg"] = round(
             sum(item["item_co2e_kg"] for item in result["line_items"]), 2
+        )
+        recommendations = build_eco_swap_recommendations(
+            result["line_items"], self.dataset_df, self.matcher
+        )
+        result["eco_swap_recommendations"] = recommendations
+        result["summary"]["potential_total_savings_kg"] = round(
+            sum(
+                recommendation["potential_savings_kg"]
+                for recommendation in recommendations
+            ),
+            2,
         )
 
         return result

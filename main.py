@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 from dotenv import load_dotenv
 
@@ -39,9 +41,9 @@ _MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
 class ReceiptItem(BaseModel):
     raw_item: str = Field(..., min_length=1, description="Item text as printed on the receipt")
     qty: float = Field(1.0, gt=0, description="Quantity purchased")
-    weight: float | None = Field(None, gt=0, description="Weight printed for this item, if sold by weight")
-    weight_unit: str | None = Field(None, description="Unit the weight is printed in, e.g. 'lb', 'kg', 'oz', 'g'")
-    price: float | None = Field(None, gt=0, description="Total price printed for this line item, in USD")
+    weight: Optional[float] = Field(None, gt=0, description="Weight printed for this item, if sold by weight")
+    weight_unit: Optional[str] = Field(None, description="Unit the weight is printed in, e.g. 'lb', 'kg', 'oz', 'g'")
+    price: Optional[float] = Field(None, gt=0, description="Total price printed for this line item, in USD")
 
 
 class AnalyzeRequest(BaseModel):
