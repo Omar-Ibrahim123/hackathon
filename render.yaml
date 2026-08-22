@@ -1,0 +1,38 @@
+services:
+  # FastAPI backend (history database, receipt analysis)
+  - type: web
+    name: greenercart-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      # Optional — enables receipt-photo scanning. Leave unset to skip.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Optional — Climatiq lookups for unmatched items.
+      - key: CLIMATIQ_API_KEY
+        sync: false
+
+  # React frontend (the site you open in the browser)
+  - type: web
+    name: greenercart
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
+      - key: VITE_API_MODE
+        value: live
+      # Must match the greenercart-api service URL. If Render gives the API
+      # a different URL (name already taken), update this and redeploy.
+      - key: VITE_API_BASE_URL
+        value: https://greenercart-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
