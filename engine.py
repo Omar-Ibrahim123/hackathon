@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Optional
 
 import pandas as pd  # type: ignore[import-unresolved]
 
@@ -18,11 +18,11 @@ __all__ = ["CarbonEngine", "OcrUnavailableError", "OcrFailedError"]
 class CarbonEngine:
     """Run OCR, local matching, and Climatiq analysis without fabricated estimates."""
 
-    def __init__(self):
+    def __init__(self, client: Optional[ClimatiqAPIClient] = None):
         self.matcher = ReceiptMatcher(EMISSION_FACTORS_CSV)
         self.dataset_df = pd.read_csv(EMISSION_FACTORS_CSV)
         api_key = os.getenv("CLIMATIQ_API_KEY", "")
-        self.climatiq = ClimatiqAPIClient(api_key) if api_key else None
+        self.climatiq = client or (ClimatiqAPIClient(api_key) if api_key else None)
 
     def analyze_receipt_image(
         self, image_bytes: bytes, content_type: str = "image/jpeg"
@@ -51,16 +51,21 @@ class CarbonEngine:
             )
             return
 
-        result = self.climatiq.fetch_item_footprint(
-            line_item["raw_item"],
-            line_item["qty"],
-            line_item.get("price_usd"),
-        )
+        if "price_usd" in line_item:
+            result = self.climatiq.fetch_item_footprint(
+                line_item["raw_item"], line_item["qty"], line_item["price_usd"]
+            )
+        else:
+            result = self.climatiq.fetch_item_footprint(
+                line_item["raw_item"], line_item["qty"]
+            )
         if result["status"] == "SUCCESS":
             line_item.update(
                 matched_item=result["matched_item"],
                 category=result["category"],
-                item_co2e_kg=round(result["co2e_per_kg"], 2),
+                item_co2e_kg=round(
+                    result.get("item_co2e_kg", result.get("co2e_per_kg", 0.0)), 2
+                ),
                 confidence_score=0.6,
                 status="MATCHED",
                 source="CLIMATIQ_API",

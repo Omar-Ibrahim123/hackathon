@@ -35,8 +35,8 @@ class BackendTests(unittest.TestCase):
                 }
 
         result = CarbonEngine(StubClient()).analyze_receipt([
-            {"raw_item": "bread", "qty": 2},
-            {"raw_item": "milk", "qty": 1},
+            {"raw_item": "test item one", "qty": 2},
+            {"raw_item": "test item two", "qty": 1},
         ])
 
         self.assertEqual(result["summary"]["total_co2e_kg"], 3.0)
