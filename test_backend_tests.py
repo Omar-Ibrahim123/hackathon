@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from api_client import ClimatiqAPIClient
+from calculator import LocalReceiptMatcher
 from engine import CarbonEngine
 
 
@@ -53,6 +54,25 @@ class BackendTests(unittest.TestCase):
         body = post_request.call_args.kwargs["json"]
         self.assertEqual(body["emission_factor"]["activity_id"], "consumer_goods-type_bread")
         self.assertEqual(body["emission_factor"]["data_version"], "^33")
+        self.assertEqual(body["parameters"], {"weight": 0.5, "weight_unit": "kg"})
+        self.assertEqual(result["status"], "SUCCESS")
+
+    @patch("api_client.requests.post")
+    @patch("api_client.requests.get")
+    def test_money_factor_uses_money_parameters(self, get_request, post_request):
+        get_request.return_value = FakeResponse(200, {
+            "results": [{"id": "service", "name": "Service", "unit_type": "Money"}]
+        })
+        post_request.return_value = FakeResponse(200, {"co2e": 1.2})
+
+        result = ClimatiqAPIClient("test-key").fetch_item_footprint(
+            "service", qty=2, price_usd=8.75
+        )
+
+        self.assertEqual(
+            post_request.call_args.kwargs["json"]["parameters"],
+            {"money": 8.75, "money_unit": "usd"},
+        )
         self.assertEqual(result["status"], "SUCCESS")
 
     @patch("api_client.requests.get")
@@ -62,6 +82,15 @@ class BackendTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "API_FAILED")
         self.assertEqual(result["error"], "Invalid query")
+
+    def test_matcher_rejects_unrelated_products(self):
+        matcher = LocalReceiptMatcher([
+            {"item_name": "potatoes", "category": "Produce"},
+            {"item_name": "bread", "category": "Bakery"},
+        ])
+
+        for item in ("PAPER TOWELS", "SHAMPOO"):
+            self.assertEqual(matcher.match_item(item)["status"], "UNMATCHED")
 
 
 if __name__ == "__main__":

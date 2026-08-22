@@ -1,26 +1,39 @@
 from difflib import SequenceMatcher
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 
 class LocalReceiptMatcher:
     """Dependency-free fuzzy matcher for local emission-factor rows."""
 
-    def __init__(self, factors: list[dict[str, Any]], threshold: float = 0.45):
+    def __init__(self, factors: List[Dict[str, Any]], threshold: float = 0.6):
         self.factors = factors
         self.threshold = threshold
 
     def match_item(self, raw_item: str) -> dict[str, Any]:
         normalized = raw_item.strip().lower()
+        tokens = set(normalized.replace("-", " ").split())
         best_factor = None
         best_score = 0.0
+        second_score = 0.0
         for factor in self.factors:
             candidate = str(factor.get("item_name", "")).lower()
-            score = 1.0 if candidate and candidate in normalized else SequenceMatcher(
-                None, normalized, candidate
-            ).ratio()
+            candidate_tokens = set(candidate.replace("-", " ").split())
+            overlap = tokens & candidate_tokens
+            score = SequenceMatcher(None, normalized, candidate).ratio()
+            if candidate and candidate in normalized:
+                score = 1.0
+            elif not overlap:
+                score = 0.0
             if score > best_score:
+                second_score = best_score
                 best_factor, best_score = factor, score
-        if best_factor is None or best_score < self.threshold:
+            elif score > second_score:
+                second_score = score
+        if (
+            best_factor is None
+            or best_score < self.threshold
+            or best_score - second_score < 0.1
+        ):
             return {"status": "UNMATCHED", "confidence_score": round(best_score, 3)}
         return {
             **best_factor,
@@ -30,17 +43,17 @@ class LocalReceiptMatcher:
         }
 
 
-def _factor_rows(dataset: Any) -> list[dict[str, Any]]:
+def _factor_rows(dataset: Any) -> List[Dict[str, Any]]:
     if hasattr(dataset, "to_dict"):
         return dataset.to_dict(orient="records")
     return list(dataset)
 
 
 def process_receipt_items(
-    parsed_items: list[dict[str, Any]],
+    parsed_items: List[Dict[str, Any]],
     dataset: Any,
-    matcher: LocalReceiptMatcher | None = None,
-) -> dict[str, Any]:
+    matcher: Optional[LocalReceiptMatcher] = None,
+) -> Dict[str, Any]:
     """Match receipt items, calculate footprints, and recommend eco-swaps."""
     factors = _factor_rows(dataset)
     matcher = matcher or LocalReceiptMatcher(factors)
