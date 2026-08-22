@@ -3,7 +3,6 @@ export interface CarbonResultItem {
   name: string;
   co2eKg: number;
 }
-
 export interface CarbonResult {
   totalCo2eKg: number;
   items: CarbonResultItem[];
@@ -32,4 +31,3 @@ export interface ManualCalculationRequest {
   currency: "CAD";
   items: ManualGroceryItem[];
 }
-

@@ -7,7 +7,6 @@ interface ManualEntryFormProps {
   disabled: boolean;
   onSubmit: (items: ManualGroceryItem[]) => void;
 }
-
 type ItemType = ManualGroceryItem["type"];
 
 const CATEGORIES = [
@@ -232,4 +231,3 @@ export default function ManualEntryForm({
     </section>
   );
 }
-

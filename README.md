@@ -57,3 +57,13 @@ streamlit run app.py
 ```
 
 Falls back to a sample receipt if `GEMINI_API_KEY` isn't set, so the UI is demoable without live OCR.
+
+## Run the Frontend
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+The hackathon demo defaults to `VITE_API_MODE=mock`, which returns fixed receipt and manual results after a short loading delay. Set `VITE_API_MODE=live` to use the team-owned frontend API endpoints. Live request failures are shown to the user and never fall back to mock results.
