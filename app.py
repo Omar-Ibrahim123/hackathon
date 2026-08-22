@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 
-load_dotenv()  # must run before CarbonEngine() reads CLIMATIQ_API_KEY / GEMINI_API_KEY
+load_dotenv()  # must run before CarbonEngine() reads CLIMATIQ_API_KEY / ANTHROPIC_API_KEY
 
 import streamlit as st  # type: ignore[import-not-found]
 from engine import CarbonEngine, OcrFailedError, OcrUnavailableError
@@ -16,7 +16,7 @@ def get_engine():
 
 engine = get_engine()
 
-# Sample items used only when GEMINI_API_KEY isn't configured, so the UI is
+# Sample items used only when ANTHROPIC_API_KEY isn't configured, so the UI is
 # still demoable without live OCR.
 MOCK_OCR_OUTPUT = [
     {"raw_item": "OATLY BARISTA OAT MILK", "qty": 1},
@@ -38,7 +38,7 @@ if uploaded_file is not None:
             )
         except OcrUnavailableError:
             st.sidebar.warning(
-                "GEMINI_API_KEY not set — showing a sample receipt instead of scanning the upload."
+                "ANTHROPIC_API_KEY not set — showing a sample receipt instead of scanning the upload."
             )
             results = engine.analyze_receipt(MOCK_OCR_OUTPUT)
         except OcrFailedError as e:
