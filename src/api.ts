@@ -1,6 +1,6 @@
 import { mockAnalyzeReceipt, mockCalculateManual } from "./mockApi";
+import { apiBaseUrl as baseUrl, apiMode as mode } from "./apiConfig";
 import type {
-  ApiMode,
   CarbonResult,
   CarbonResultItem,
   ManualGroceryItem,
@@ -10,18 +10,6 @@ const INVALID_RESPONSE_MESSAGE =
   "The calculation service returned an invalid response.";
 const REQUEST_FAILURE_MESSAGE =
   "Unable to calculate your groceries right now.";
-
-function resolveMode(value: string | undefined): ApiMode {
-  if (!value) return "mock";
-  if (value === "mock" || value === "live") return value;
-  throw new Error(
-    `Unsupported VITE_API_MODE "${value}". Use "mock" or "live".`,
-  );
-}
-
-const mode = resolveMode(import.meta.env.VITE_API_MODE);
-const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000")
-  .replace(/\/$/, "");
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
