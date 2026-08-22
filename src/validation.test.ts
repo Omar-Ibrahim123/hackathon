@@ -24,13 +24,14 @@ describe("validateReceiptFile", () => {
 });
 
 describe("validateManualItem", () => {
-  it("accepts produce with a name and positive price", () => {
+  it("accepts a product with a name, positive price, and quantity", () => {
     expect(
       validateManualItem({
         id: "1",
-        type: "produce",
+        type: "product",
         name: "Apples",
         priceCad: 4.5,
+        quantity: 1,
       }),
     ).toEqual({ ok: true });
   });
@@ -39,9 +40,10 @@ describe("validateManualItem", () => {
     expect(
       validateManualItem({
         id: "2",
-        type: "produce",
+        type: "product",
         name: "Apples",
         priceCad: 0,
+        quantity: 1,
       }),
     ).toEqual({
       ok: false,
@@ -49,13 +51,12 @@ describe("validateManualItem", () => {
     });
   });
 
-  it("rejects a packaged product with a non-positive quantity", () => {
+  it("rejects a product with a non-positive quantity", () => {
     expect(
       validateManualItem({
         id: "3",
-        type: "packaged",
+        type: "product",
         name: "Granola bars",
-        category: "Snacks and sweets",
         priceCad: 5,
         quantity: 0,
       }),

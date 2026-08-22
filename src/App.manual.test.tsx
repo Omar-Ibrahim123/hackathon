@@ -7,29 +7,26 @@ import App from "./App";
 afterEach(cleanup);
 
 describe("manual grocery calculation", () => {
-  it("builds a packaged and produce list before rendering item emissions", async () => {
+  it("builds a product list without type or category controls", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.click(screen.getByRole("tab", { name: "Enter manually" }));
 
+    expect(
+      screen.queryByRole("radio", { name: "Produce" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Packaged product")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Grocery category")).not.toBeInTheDocument();
+
     await user.type(screen.getByLabelText("Product name"), "Granola bars");
-    await user.selectOptions(
-      screen.getByLabelText("Grocery category"),
-      "Snacks and sweets",
-    );
     await user.type(screen.getByLabelText("Price (CAD)"), "5");
     await user.type(screen.getByLabelText("Quantity"), "1");
     await user.click(screen.getByRole("button", { name: "Add item" }));
 
-    await user.click(screen.getByRole("radio", { name: "Produce" }));
-    expect(screen.queryByLabelText("Grocery category")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Quantity")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/brand/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/weight/i)).not.toBeInTheDocument();
-
-    await user.type(screen.getByLabelText("Produce name"), "Apples");
+    await user.type(screen.getByLabelText("Product name"), "Apples");
     await user.type(screen.getByLabelText("Price (CAD)"), "4.50");
+    await user.type(screen.getByLabelText("Quantity"), "1");
     await user.click(screen.getByRole("button", { name: "Add item" }));
 
     await user.click(

@@ -256,51 +256,6 @@ h1 {
 
 .field-error { margin: 12px 0 0; color: var(--danger); font-size: .88rem; }
 
-.type-picker {
-  margin: 0 0 20px;
-  padding: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  border: 0;
-}
-
-.type-picker legend {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.type-option {
-  min-height: 44px;
-  padding: 10px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--muted);
-  background: #f5f7f3;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font-size: .85rem;
-  font-weight: 700;
-  text-align: center;
-  cursor: pointer;
-}
-
-.type-option.selected {
-  color: var(--green-dark);
-  background: var(--green-pale);
-  border-color: #a7c6b0;
-}
-
-.type-option input { accent-color: var(--green); }
-
 .manual-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;

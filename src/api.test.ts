@@ -79,7 +79,13 @@ describe("frontend carbon API", () => {
 
     await expect(
       calculateManual([
-        { id: "apples", type: "produce", name: "Apples", priceCad: 4.5 },
+        {
+          id: "apples",
+          type: "product",
+          name: "Apples",
+          priceCad: 4.5,
+          quantity: 1,
+        },
       ]),
     ).resolves.toEqual({
       totalCo2eKg: 2.7,
@@ -94,7 +100,13 @@ describe("frontend carbon API", () => {
       region: "CA",
       currency: "CAD",
       items: [
-        { id: "apples", type: "produce", name: "Apples", priceCad: 4.5 },
+        {
+          id: "apples",
+          type: "product",
+          name: "Apples",
+          priceCad: 4.5,
+          quantity: 1,
+        },
       ],
     });
   });

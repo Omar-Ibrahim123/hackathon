@@ -35,18 +35,11 @@ export function validateManualItem(item: ManualGroceryItem): ValidationResult {
     return { ok: false, message: "Enter an item name." };
   }
 
-  if (item.type === "packaged" && !item.category.trim()) {
-    return { ok: false, message: "Choose a grocery category." };
-  }
-
   if (!Number.isFinite(item.priceCad) || item.priceCad <= 0) {
     return { ok: false, message: "Enter a price greater than $0." };
   }
 
-  if (
-    item.type === "packaged" &&
-    (!Number.isInteger(item.quantity) || item.quantity <= 0)
-  ) {
+  if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
     return {
       ok: false,
       message: "Enter a whole-number quantity greater than 0.",
