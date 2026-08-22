@@ -59,23 +59,13 @@ footer {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: var(--ink);
-  font-weight: 800;
-  font-size: 1.05rem;
   text-decoration: none;
-  letter-spacing: -.02em;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  color: white;
-  background: var(--green);
-  border-radius: 50% 50% 50% 12px;
-  font-family: Georgia, serif;
+.brand-logo {
+  display: block;
+  height: 50px;
+  width: auto;
 }
 
 .app-nav {

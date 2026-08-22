@@ -86,8 +86,8 @@ export default function HomePage() {
           Turn your grocery list into a clearer carbon picture.
         </h1>
         <p className="hero-copy">
-          Upload a receipt or enter your groceries. GreenerCart returns a
-          simple footprint for the whole shop and every item in it.
+          Upload a receipt, take a picture, or enter your groceries. EcoReceipt
+          returns a simple footprint for the whole shop and every item in it.
         </p>
       </section>
 

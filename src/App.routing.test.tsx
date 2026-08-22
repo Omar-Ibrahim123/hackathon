@@ -14,7 +14,7 @@ describe("application routing", () => {
     renderApp({ route: "/" });
 
     expect(
-      screen.getByRole("heading", { name: /welcome to greenercart/i }),
+      screen.getByRole("heading", { name: /welcome to ecoreceipt/i }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Start tracking" }));
 
@@ -37,6 +37,20 @@ describe("application routing", () => {
     );
     expect(
       screen.getByRole("heading", { name: "Progress & Insights" }),
+    ).toBeInTheDocument();
+  });
+
+  it("presents the EcoReceipt brand and all three grocery input options", () => {
+    renderApp({ route: "/", welcomeComplete: true });
+
+    const homeLink = screen.getByRole("link", { name: "EcoReceipt home" });
+    expect(homeLink).toContainElement(
+      screen.getByRole("img", { name: "EcoReceipt" }),
+    );
+    expect(
+      screen.getByText(
+        "Upload a receipt, take a picture, or enter your groceries. EcoReceipt returns a simple footprint for the whole shop and every item in it.",
+      ),
     ).toBeInTheDocument();
   });
 
