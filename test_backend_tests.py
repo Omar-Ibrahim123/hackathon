@@ -15,12 +15,12 @@ class FakeResponse:
 
 
 class BackendTests(unittest.TestCase):
-    def test_missing_key_uses_quantity_aware_fallback(self):
+    def test_missing_key_returns_api_failure(self):
         result = ClimatiqAPIClient("").fetch_item_footprint("ground beef", qty=2)
 
-        self.assertEqual(result["status"], "FALLBACK_ESTIMATED")
-        self.assertEqual(result["source"], "OFFLINE_FALLBACK")
-        self.assertEqual(result["item_co2e_kg"], 24.3)
+        self.assertEqual(result["status"], "API_FAILED")
+        self.assertEqual(result["source"], "ERROR")
+        self.assertEqual(result["error"], "CLIMATIQ_API_KEY is not set")
 
     def test_engine_returns_categories_and_equivalencies(self):
         class StubClient:
@@ -56,11 +56,11 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(result["status"], "SUCCESS")
 
     @patch("api_client.requests.get")
-    def test_http_error_uses_fallback_and_preserves_message(self, get_request):
+    def test_http_error_returns_api_failure_and_preserves_message(self, get_request):
         get_request.return_value = FakeResponse(400, {"message": "Invalid query"})
         result = ClimatiqAPIClient("test-key").fetch_item_footprint("unknown")
 
-        self.assertEqual(result["status"], "UNMATCHED")
+        self.assertEqual(result["status"], "API_FAILED")
         self.assertEqual(result["error"], "Invalid query")
 
 
