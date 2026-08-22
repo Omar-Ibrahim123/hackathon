@@ -8,6 +8,7 @@ load_dotenv()  # must run before CarbonEngine() reads CLIMATIQ_API_KEY / ANTHROP
 
 from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from engine import CarbonEngine, OcrFailedError, OcrUnavailableError
@@ -86,6 +87,11 @@ class ImportTripsRequest(BaseModel):
 
 def get_history_store() -> HistoryStore:
     return history_store
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health")
