@@ -10,6 +10,10 @@ from typing import Callable
 _CANONICAL_ID = re.compile(r"trip_(\d+)")
 
 
+class HistoryConflictError(RuntimeError):
+    """Raised when one browser import key describes different trip data."""
+
+
 class HistoryStore:
     """Stores normalized GreenerCart trips in SQLite."""
 
@@ -69,6 +73,14 @@ class HistoryStore:
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("Trip timestamps must include a timezone.")
         return value.astimezone(timezone.utc).isoformat()
+
+    @classmethod
+    def _parse_timestamp(cls, value: str) -> str:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except (TypeError, ValueError) as error:
+            raise ValueError("Trip timestamps must be valid ISO 8601 values.") from error
+        return cls._normalize_timestamp(parsed)
 
     def _insert_trip(
         self,
@@ -133,6 +145,38 @@ class HistoryStore:
             ],
         }
 
+    def _find_trip_row(
+        self,
+        connection: sqlite3.Connection,
+        reference: str,
+    ) -> sqlite3.Row | None:
+        trip_id = self._canonical_row_id(reference)
+        if trip_id is not None:
+            row = connection.execute(
+                "SELECT * FROM trips WHERE id = ?",
+                (trip_id,),
+            ).fetchone()
+            if row is not None:
+                return row
+        return connection.execute(
+            "SELECT * FROM trips WHERE import_key = ?",
+            (reference,),
+        ).fetchone()
+
+    @staticmethod
+    def _matches_import(saved: dict, imported: dict, saved_at: str) -> bool:
+        return {
+            "source": saved["source"],
+            "savedAt": saved["savedAt"],
+            "totalCo2eKg": saved["totalCo2eKg"],
+            "items": saved["items"],
+        } == {
+            "source": imported["source"],
+            "savedAt": saved_at,
+            "totalCo2eKg": imported["totalCo2eKg"],
+            "items": imported["items"],
+        }
+
     def create_trip(self, trip: dict) -> dict:
         saved_at = self._normalize_timestamp(self._now())
         with self._connect() as connection:
@@ -150,21 +194,47 @@ class HistoryStore:
             ).fetchall()
             return [self._hydrate_trip(connection, row) for row in rows]
 
-    def get_trip(self, reference: str) -> dict | None:
-        trip_id = self._canonical_row_id(reference)
-        if trip_id is None:
-            return None
+    def import_trips(self, trips: list[dict]) -> list[dict]:
+        imported_trips = []
         with self._connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM trips WHERE id = ?",
-                (trip_id,),
-            ).fetchone()
+            for trip in trips:
+                import_key = trip["id"]
+                saved_at = self._parse_timestamp(trip["savedAt"])
+                existing_row = connection.execute(
+                    "SELECT * FROM trips WHERE import_key = ?",
+                    (import_key,),
+                ).fetchone()
+                if existing_row is not None:
+                    existing = self._hydrate_trip(connection, existing_row)
+                    if not self._matches_import(existing, trip, saved_at):
+                        raise HistoryConflictError(
+                            f'Imported trip "{import_key}" conflicts with saved history.'
+                        )
+                    imported_trips.append(existing)
+                    continue
+
+                trip_id = self._insert_trip(
+                    connection,
+                    trip,
+                    saved_at,
+                    import_key=import_key,
+                )
+                row = connection.execute(
+                    "SELECT * FROM trips WHERE id = ?",
+                    (trip_id,),
+                ).fetchone()
+                imported_trips.append(self._hydrate_trip(connection, row))
+        return imported_trips
+
+    def get_trip(self, reference: str) -> dict | None:
+        with self._connect() as connection:
+            row = self._find_trip_row(connection, reference)
             return self._hydrate_trip(connection, row) if row else None
 
     def delete_trip(self, reference: str) -> bool:
-        trip_id = self._canonical_row_id(reference)
-        if trip_id is None:
-            return False
         with self._connect() as connection:
-            cursor = connection.execute("DELETE FROM trips WHERE id = ?", (trip_id,))
+            row = self._find_trip_row(connection, reference)
+            if row is None:
+                return False
+            cursor = connection.execute("DELETE FROM trips WHERE id = ?", (row["id"],))
             return cursor.rowcount > 0
