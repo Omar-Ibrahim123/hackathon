@@ -29,6 +29,7 @@ describe("buildProgressSummary", () => {
     ]);
     expect(summary.latestUploadChangePercent).toBe(100);
     expect(summary.averageTripCo2eKg).toBeCloseTo(35 / 6);
+    expect(summary.totalTripCo2eKg).toBeCloseTo(35);
     expect(summary.highestImpactTrip?.id).toBe("upload-7");
   });
 
@@ -51,6 +52,7 @@ describe("buildProgressSummary", () => {
     expect(summary.uploads).toEqual([]);
     expect(summary.tripCount).toBe(0);
     expect(summary.averageTripCo2eKg).toBeNull();
+    expect(summary.totalTripCo2eKg).toBe(0);
     expect(summary.highestImpactTrip).toBeNull();
   });
 

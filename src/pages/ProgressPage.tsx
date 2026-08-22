@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import ProgressChart from "../components/ProgressChart";
+import { formatCarMiles } from "../emissions";
 import { formatEmissions, formatSavedAt } from "../format";
 import { buildProgressSummary } from "../history/progress";
 import { useTripRepository } from "../history/TripRepositoryContext";
@@ -74,6 +75,11 @@ export default function ProgressPage() {
             <article className="insight-card">
               <span>Average upload</span>
               <strong>{formatEmissions(summary.averageTripCo2eKg ?? 0)} per upload</strong>
+            </article>
+            <article className="insight-card">
+              <span>Total footprint (last {summary.tripCount} uploads)</span>
+              <strong>{formatEmissions(summary.totalTripCo2eKg)}</strong>
+              <small>{`That's like ${formatCarMiles(summary.totalTripCo2eKg)} in an average car`}</small>
             </article>
             {summary.highestImpactTrip && (
               <Link

@@ -39,6 +39,9 @@ describe("ProgressPage", () => {
       await screen.findByText("50% increase from previous upload"),
     ).toBeInTheDocument();
     expect(screen.getByText("6.5 kg CO₂e per upload")).toBeInTheDocument();
+    expect(screen.getByText("39 kg CO₂e")).toBeInTheDocument();
+    expect(screen.getByText(/That's like .* in an average car/))
+      .toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Recent uploads" }))
       .toBeInTheDocument();
     expect(screen.getByRole("link", { name: /highest-impact upload/i }))
