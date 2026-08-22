@@ -3,7 +3,6 @@ import type {
   ApiMode,
   CarbonResult,
   CarbonResultItem,
-  ManualCalculationRequest,
   ManualGroceryItem,
 } from "./types";
 
@@ -21,20 +20,36 @@ function resolveMode(value: string | undefined): ApiMode {
 }
 
 const mode = resolveMode(import.meta.env.VITE_API_MODE);
-const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000")
+const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000")
   .replace(/\/$/, "");
 
-function isResultItem(value: unknown): value is CarbonResultItem {
-  if (typeof value !== "object" || value === null) return false;
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function normalizeLineItem(
+  value: unknown,
+  index: number,
+): CarbonResultItem | null {
+  if (typeof value !== "object" || value === null) return null;
   const item = value as Record<string, unknown>;
-  return (
-    typeof item.id === "string" &&
-    typeof item.name === "string" &&
-    item.name.trim().length > 0 &&
-    typeof item.co2eKg === "number" &&
-    Number.isFinite(item.co2eKg) &&
-    item.co2eKg >= 0
-  );
+  const name = isNonEmptyString(item.matched_item)
+    ? item.matched_item.trim()
+    : isNonEmptyString(item.raw_item)
+      ? item.raw_item.trim()
+      : null;
+
+  if (!name || !isNonNegativeFiniteNumber(item.item_co2e_kg)) return null;
+
+  return {
+    id: `item-${index}`,
+    name,
+    co2eKg: item.item_co2e_kg,
+  };
 }
 
 export function parseCarbonResult(value: unknown): CarbonResult {
@@ -42,20 +57,27 @@ export function parseCarbonResult(value: unknown): CarbonResult {
     throw new Error(INVALID_RESPONSE_MESSAGE);
   }
 
-  const result = value as Record<string, unknown>;
+  const response = value as Record<string, unknown>;
+  if (typeof response.summary !== "object" || response.summary === null) {
+    throw new Error(INVALID_RESPONSE_MESSAGE);
+  }
+
+  const summary = response.summary as Record<string, unknown>;
   if (
-    typeof result.totalCo2eKg !== "number" ||
-    !Number.isFinite(result.totalCo2eKg) ||
-    result.totalCo2eKg < 0 ||
-    !Array.isArray(result.items) ||
-    !result.items.every(isResultItem)
+    !isNonNegativeFiniteNumber(summary.total_co2e_kg) ||
+    !Array.isArray(response.line_items)
   ) {
     throw new Error(INVALID_RESPONSE_MESSAGE);
   }
 
+  const items = response.line_items.map(normalizeLineItem);
+  if (items.some((item) => item === null)) {
+    throw new Error(INVALID_RESPONSE_MESSAGE);
+  }
+
   return {
-    totalCo2eKg: result.totalCo2eKg,
-    items: result.items.map((item) => ({ ...item })),
+    totalCo2eKg: summary.total_co2e_kg,
+    items: items as CarbonResultItem[],
   };
 }
 
@@ -84,17 +106,28 @@ async function readResult(response: Response): Promise<CarbonResult> {
   }
 }
 
+async function fetchResult(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<CarbonResult> {
+  let response: Response;
+  try {
+    response = await fetch(input, init);
+  } catch {
+    throw new Error(REQUEST_FAILURE_MESSAGE);
+  }
+  return readResult(response);
+}
+
 export async function analyzeReceipt(file: File): Promise<CarbonResult> {
   if (mode === "mock") return mockAnalyzeReceipt(file);
 
   const body = new FormData();
-  body.append("receipt", file);
-  return readResult(
-    await fetch(`${baseUrl}/api/receipts/analyze`, {
-      method: "POST",
-      body,
-    }),
-  );
+  body.append("file", file);
+  return fetchResult(`${baseUrl}/api/receipts/scan`, {
+    method: "POST",
+    body,
+  });
 }
 
 export async function calculateManual(
@@ -102,16 +135,15 @@ export async function calculateManual(
 ): Promise<CarbonResult> {
   if (mode === "mock") return mockCalculateManual(items);
 
-  const body: ManualCalculationRequest = {
-    region: "CA",
-    currency: "CAD",
-    items,
+  const body = {
+    items: items.map((item) => ({
+      raw_item: item.name,
+      qty: item.quantity,
+    })),
   };
-  return readResult(
-    await fetch(`${baseUrl}/api/groceries/calculate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }),
-  );
+  return fetchResult(`${baseUrl}/api/receipts/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }

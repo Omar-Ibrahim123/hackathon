@@ -38,11 +38,56 @@ describe("frontend carbon API", () => {
     });
   });
 
+  it("posts a receipt to the FastAPI scan endpoint and normalizes its response", async () => {
+    vi.stubEnv("VITE_API_MODE", "live");
+    vi.stubEnv("VITE_API_BASE_URL", "https://api.example.test");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          summary: {
+            total_co2e_kg: 2.4,
+            total_items_processed: 1,
+            potential_total_savings_kg: 0,
+          },
+          line_items: [
+            {
+              raw_item: "OATLY BARISTA OAT MILK",
+              matched_item: "Oat milk",
+              item_co2e_kg: 2.4,
+            },
+          ],
+          eco_swap_recommendations: [],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { analyzeReceipt } = await import("./api");
+    const file = new File(["receipt"], "receipt.jpg", {
+      type: "image/jpeg",
+    });
+
+    await expect(analyzeReceipt(file)).resolves.toEqual({
+      totalCo2eKg: 2.4,
+      items: [{ id: "item-0", name: "Oat milk", co2eKg: 2.4 }],
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/receipts/scan",
+    );
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(request.method).toBe("POST");
+    expect(request.body).toBeInstanceOf(FormData);
+    expect((request.body as FormData).get("file")).toBe(file);
+    expect((request.body as FormData).get("receipt")).toBeNull();
+  });
+
   it("surfaces a live receipt failure without returning mock data", async () => {
     vi.stubEnv("VITE_API_MODE", "live");
     vi.stubEnv("VITE_API_BASE_URL", "https://api.example.test");
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ error: "Receipt service unavailable." }), {
+      new Response(JSON.stringify({ detail: "Receipt service unavailable." }), {
         status: 503,
         headers: { "Content-Type": "application/json" },
       }),
@@ -58,18 +103,29 @@ describe("frontend carbon API", () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/api/receipts/analyze",
+      "https://api.example.test/api/receipts/scan",
     );
   });
 
-  it("posts the Canada-wide manual payload in live mode", async () => {
+  it("translates manual groceries for the FastAPI analyze endpoint", async () => {
     vi.stubEnv("VITE_API_MODE", "live");
     vi.stubEnv("VITE_API_BASE_URL", "https://api.example.test");
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          totalCo2eKg: 2.7,
-          items: [{ id: "apples", name: "Apples", co2eKg: 0.9 }],
+          summary: {
+            total_co2e_kg: 0.9,
+            total_items_processed: 1,
+            potential_total_savings_kg: 0,
+          },
+          line_items: [
+            {
+              raw_item: "Apples",
+              matched_item: "Apple",
+              item_co2e_kg: 0.9,
+            },
+          ],
+          eco_swap_recommendations: [],
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
@@ -84,22 +140,44 @@ describe("frontend carbon API", () => {
           type: "product",
           name: "Apples",
           priceCad: 4.5,
-          quantity: 1,
+          quantity: 2,
         },
       ]),
     ).resolves.toEqual({
-      totalCo2eKg: 2.7,
-      items: [{ id: "apples", name: "Apples", co2eKg: 0.9 }],
+      totalCo2eKg: 0.9,
+      items: [{ id: "item-0", name: "Apple", co2eKg: 0.9 }],
     });
 
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://api.example.test/api/groceries/calculate",
+      "https://api.example.test/api/receipts/analyze",
     );
+    expect(request.headers).toEqual({ "Content-Type": "application/json" });
     expect(JSON.parse(request.body as string)).toEqual({
-      region: "CA",
-      currency: "CAD",
-      items: [
+      items: [{ raw_item: "Apples", qty: 2 }],
+    });
+  });
+
+  it.each([
+    { summary: {}, line_items: [] },
+    { summary: { total_co2e_kg: -1 }, line_items: [] },
+    {
+      summary: { total_co2e_kg: 1 },
+      line_items: [{ raw_item: "Apples", item_co2e_kg: Number.NaN }],
+    },
+  ])("rejects malformed backend results", async (payload) => {
+    vi.stubEnv("VITE_API_MODE", "live");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { calculateManual } = await import("./api");
+
+    await expect(
+      calculateManual([
         {
           id: "apples",
           type: "product",
@@ -107,7 +185,28 @@ describe("frontend carbon API", () => {
           priceCad: 4.5,
           quantity: 1,
         },
-      ],
-    });
+      ]),
+    ).rejects.toThrow("The calculation service returned an invalid response.");
+  });
+
+  it("converts a rejected fetch into the shared request failure", async () => {
+    vi.stubEnv("VITE_API_MODE", "live");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new TypeError("fetch failed")),
+    );
+    const { calculateManual } = await import("./api");
+
+    await expect(
+      calculateManual([
+        {
+          id: "apples",
+          type: "product",
+          name: "Apples",
+          priceCad: 4.5,
+          quantity: 1,
+        },
+      ]),
+    ).rejects.toThrow("Unable to calculate your groceries right now.");
   });
 });
