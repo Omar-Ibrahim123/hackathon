@@ -1,7 +1,7 @@
 # Frontend–Backend Integration Design
 
 **Date:** 2026-08-22  
-**Status:** Approved in chat; pending written-spec review  
+**Status:** Approved  
 **Scope:** Connect the existing GreenerCart React frontend to the existing EcoReceipt FastAPI backend without changing the carbon-calculation pipeline
 
 ## Goal
